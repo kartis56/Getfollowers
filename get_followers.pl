@@ -275,7 +275,7 @@ sub wait_for_rate_limit {
 		$time = $limit->{'reset'} ;
 		if ( ($time - time) <= 0 ){		# resetが古いことがある
 			$time = time + 60; }
-		if ($debug ==1) { print STDERR "wait_for_rate_limit next Loop: ". $time . "  limit is : ". $limit->{'remaining'} ."type is : ". $type. "\n"; }
+		if ($debug ==1) { print STDERR "wait_for_rate_limit next Loop: ". $time . "  limit is : ". $limit->{'remaining'} ." type is : ". $type. "\n"; }
 	}
 
 }
