@@ -284,12 +284,12 @@ sub wait_for_rate_limit {
 __END__
 ---
 creds:
-    consumer_key:        
-    consumer_secret:     
+    consumer_key:        #enter keys here
+    consumer_secret:     #enter keys here
     access_token:        &token
-                         
+                         #enter keys here
     access_token_secret: &token_secret
-                         
+                         #enter keys here
     token:               *token
     token_secret:        *token_secret
     ssl:                 1
