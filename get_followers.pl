@@ -25,7 +25,7 @@ eval 'use Net::Twitter::Lite ; 1' or  # Twitter API—pƒ‚ƒWƒ…[ƒ‹A‚È‚¢ê‡‚ÍƒGƒ‰
 	die "ERROR : cannot load Net::Twitter::Lite\n" ;
 eval 'use Encode ; 1' or              # •¶ŽšƒR[ƒh•ÏŠ·A‚È‚¢ê‡‚ÍƒGƒ‰[•\Ž¦
 	die "ERROR : cannot load Encode\n" ;
-use YAML::XS        'Load';
+use YAML::XS        'LoadFile';
 use Scalar::Util 'blessed';
 use IO::Handle;			#ƒI[ƒgƒtƒ‰ƒbƒVƒ…
 
@@ -33,8 +33,10 @@ open TMP, '>>work.txt' ;
 
 open IN, '<spamer.txt' or die "Error : file can't open spamer.txt\n";
 
+
+
 my $debug = 1;
-my $conf         = Load(do{ local $/; <DATA> });
+my $conf         = LoadFile( "keys.txt" );
 my %creds        = %{$conf->{creds}};
 my $twit = Net::Twitter::Lite::WithAPIv1_1->new(%creds);
 
@@ -279,17 +281,3 @@ sub wait_for_rate_limit {
 	}
 
 }
-
-# ====================
-__END__
----
-creds:
-    consumer_key:        2rpgqO0dbbYUUaWdiPfMKZTpv
-    consumer_secret:     I4tSF9wKyYxriRlVo1w4J2CjQgu0WlbQ1pzXpWBatxX56D5QDc
-    access_token:        &token
-                         86549113-6B5jXZFaqNvQj1dLu7hsz0E3itgVOgXzEzBcmPv0c
-    access_token_secret: &token_secret
-                         kNfwLRhJH43aIu3qbGdsGb19Bg5ul57Co6tPkpEGOFJWn
-    token:               *token
-    token_secret:        *token_secret
-    ssl:                 1
