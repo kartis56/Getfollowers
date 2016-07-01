@@ -1,19 +1,19 @@
 #!/usr/bin/perl
 
-# Twitterã§ç‰¹å®šãƒ¦ãƒ¼ã‚¶ã®ãƒ•ã‚©ãƒ­ãƒ¯ãƒ¼ä¸€è¦§ã‚’å–å¾—ã—ã€ã‚¿ãƒ–åŒºåˆ‡ã‚Šãƒ†ã‚­ã‚¹ãƒˆå½¢å¼ã§å‡ºåŠ›ã™ã‚‹
+# Twitter‚Å“Á’èƒ†[ƒU‚ÌƒtƒHƒƒ[ˆê——‚ðŽæ“¾‚µAƒ^ƒu‹æØ‚èƒeƒLƒXƒgŒ`Ž®‚Åo—Í‚·‚é
 #
 # Usage:  ./get_followers.pl  [USER]
 #
-# USERï¼ˆscreen nameï¼‰ã§æŒ‡å®šã—ãŸãƒ¦ãƒ¼ã‚¶ã®ãƒ•ã‚©ãƒ­ãƒ¯ãƒ¼ä¸€è¦§ã‚’å–å¾—ã™ã‚‹
-# çœç•¥æ™‚ã¯è‡ªåˆ†è‡ªèº«ã®ãƒ•ã‚©ãƒ­ãƒ¯ãƒ¼ä¸€è¦§ã‚’å–å¾—ã™ã‚‹
+# USERiscreen namej‚ÅŽw’è‚µ‚½ƒ†[ƒU‚ÌƒtƒHƒƒ[ˆê——‚ðŽæ“¾‚·‚é
+# È—ªŽž‚ÍŽ©•ªŽ©g‚ÌƒtƒHƒƒ[ˆê——‚ðŽæ“¾‚·‚é
 # 
-#// cygwinã€€ã§perl -MCPAN -e shell
+#// cygwin@‚Åperl -MCPAN -e shell
 # cpan install Encode inc:latest Net::Twitter::Lite YAML::XS Scalar::Util 
 #
 #
-# ã‚ã‚‰ã‹ã˜ã‚ https://dev.twitter.com/apps ã‚ˆã‚Šç™»éŒ²ã—ã¦ã€OAuthèªè¨¼ã«å¿…è¦ãª
-# consumer_key, consumer_secret, access_token, access_token_secret ã‚’å–å¾—ã—ã€
-# ã‚½ãƒ¼ã‚¹å†…ã® twitter_oauth ã‚µãƒ–ãƒ«ãƒ¼ãƒãƒ³å†…ã«è¨˜è¼‰ã™ã‚‹ã“ã¨
+# ‚ ‚ç‚©‚¶‚ß https://dev.twitter.com/apps ‚æ‚è“o˜^‚µ‚ÄAOAuth”FØ‚É•K—v‚È
+# consumer_key, consumer_secret, access_token, access_token_secret ‚ðŽæ“¾‚µA
+# ƒ\[ƒX“à‚Ì twitter_oauth ƒTƒuƒ‹[ƒ`ƒ““à‚É‹LÚ‚·‚é‚±‚Æ
 #
 
 use warnings ;
@@ -21,26 +21,28 @@ use strict ;
 use Data::Dumper;
 use Net::Twitter::Lite::WithAPIv1_1;
 use File::Spec;
-eval 'use Net::Twitter::Lite ; 1' or  # Twitter APIç”¨ãƒ¢ã‚¸ãƒ¥ãƒ¼ãƒ«ã€ãªã„å ´åˆã¯ã‚¨ãƒ©ãƒ¼è¡¨ç¤º
+eval 'use Net::Twitter::Lite ; 1' or  # Twitter API—pƒ‚ƒWƒ…[ƒ‹A‚È‚¢ê‡‚ÍƒGƒ‰[•\Ž¦
 	die "ERROR : cannot load Net::Twitter::Lite\n" ;
-eval 'use Encode ; 1' or              # æ–‡å­—ã‚³ãƒ¼ãƒ‰å¤‰æ›ã€ãªã„å ´åˆã¯ã‚¨ãƒ©ãƒ¼è¡¨ç¤º
+eval 'use Encode ; 1' or              # •¶ŽšƒR[ƒh•ÏŠ·A‚È‚¢ê‡‚ÍƒGƒ‰[•\Ž¦
 	die "ERROR : cannot load Encode\n" ;
-use YAML::XS        'Load';
+use YAML::XS        'LoadFile';
 use Scalar::Util 'blessed';
-use IO::Handle;			#ã‚ªãƒ¼ãƒˆãƒ•ãƒ©ãƒƒã‚·ãƒ¥
+use IO::Handle;			#ƒI[ƒgƒtƒ‰ƒbƒVƒ…
 
 open TMP, '>>work.txt' ;
 
 open IN, '<spamer.txt' or die "Error : file can't open spamer.txt\n";
 
+
+
 my $debug = 1;
-my $conf         = Load(do{ local $/; <DATA> });
+my $conf         = LoadFile( "keys.txt" );
 my %creds        = %{$conf->{creds}};
 my $twit = Net::Twitter::Lite::WithAPIv1_1->new(%creds);
 
 
 
-# OAuthèªè¨¼
+# OAuth”FØ
 #my $twit ;
 #twitter_oauth() ;
 #
@@ -55,11 +57,11 @@ exit ;
 
 
 sub get_followers_list{
-	# IDãƒªã‚¹ãƒˆå–å¾—
+	# IDƒŠƒXƒgŽæ“¾
 	my @ids = get_followers($_) ;
 
-# ãƒ¦ãƒ¼ã‚¶ãƒªã‚¹ãƒˆã«å¤‰æ›
-# 100ä»¶ã”ã¨ã«åˆ†å‰²ã—ã¦å–å¾—
+# ƒ†[ƒUƒŠƒXƒg‚É•ÏŠ·
+# 100Œ‚²‚Æ‚É•ªŠ„‚µ‚ÄŽæ“¾
 	TMP->autoflush(1);
 	while (my @ids_100 = splice(@ids,0,100)){
 		wait_for_rate_limit('lookup_users');
@@ -73,17 +75,17 @@ sub get_followers_list{
 # ====================
 sub get_followers {  # Usage: @ids = get_followers($screen_name) ;
 	my %arg ;
-	$arg{'screen_name'} = $_[0] ;  # APIä»•æ§˜ã¨ã—ã¦ç©ºç™½ã®å ´åˆã¯è‡ªåˆ†ã®ãƒ•ã‚©ãƒ­ãƒ¯ãƒ¼å–å¾—ã«ãªã‚‹ã®ã§æ³¨æ„
+	$arg{'screen_name'} = $_[0] ;  # APIŽd—l‚Æ‚µ‚Ä‹ó”’‚Ìê‡‚ÍŽ©•ª‚ÌƒtƒHƒƒ[Žæ“¾‚É‚È‚é‚Ì‚Å’ˆÓ
 	if ($debug == 1) { print " arg ".  $arg{'screen_name'} .' $_0 '. $_[0] ." --\n" ; }
 	
-	$arg{'cursor'} = -1 ;  # 1ãƒšãƒ¼ã‚¸ç›®ã¯ -1 ã‚’æŒ‡å®š
+	$arg{'cursor'} = -1 ;  # 1ƒy[ƒW–Ú‚Í -1 ‚ðŽw’è
 	my @l_ids ;
 	my $ids_ref;
 	my $followers_ref;
 
 	eval {
 
-	while ($arg{'cursor'}){ # ä¸€åº¦ã«5000ã¾ã§ã—ã‹å–å¾—ã§ããªã„ã®ã§cursorã‚’æ›¸ãæ›ãˆãªãŒã‚‰å–å¾—ã‚’ç¹°ã‚Šè¿”ã™
+	while ($arg{'cursor'}){ # ˆê“x‚É5000‚Ü‚Å‚µ‚©Žæ“¾‚Å‚«‚È‚¢‚Ì‚Åcursor‚ð‘‚«Š·‚¦‚È‚ª‚çŽæ“¾‚ðŒJ‚è•Ô‚·
 
 		if ($debug == 1) { print " -- getfollowers call  --\n" ; }
 		wait_for_rate_limit('followers');
@@ -163,10 +165,10 @@ sub users_lookup {  # usage: @userinfo = users_lookup(@user_id_list)
 		my $description       = $_->{'description'}       // '' ;
 		my $following          = $_->{'following'}        // '' ;
 		my $followers_count          = $_->{'followers_count'}        // '' ;
-		my $protected          = $_->{'protected'}        // '' ;  #éžå…¬é–‹ã‚¢ã‚«ã‚¦ãƒ³ãƒˆ
+		my $protected          = $_->{'protected'}        // '' ;  #”ñŒöŠJƒAƒJƒEƒ“ƒg
 		if ( $protected == 1 ) { $i++; next; }
 	
-		@ss          =   @{$rel_ref}[$i]->{'connections'}        // '' ;			# é–¢ä¿‚æ€§
+		@ss          =   @{$rel_ref}[$i]->{'connections'}        // '' ;			# ŠÖŒW«
 
 		my @d =  @{$ss[0]} ;
 		my $dd = join(",",  @{$ss[0]});
@@ -174,7 +176,7 @@ sub users_lookup {  # usage: @userinfo = users_lookup(@user_id_list)
 			print "connections :". @d . "\n"; 
 			print "when $dd\n" ;
 		}
-		if ( $dd =~ /blocking/i ) { $i++; next; }		# blockæ¸ˆã¿ãªã‚‰èª­ã¿é£›ã°ã™
+		if ( $dd =~ /blocking/i ) { $i++; next; }		# blockÏ‚Ý‚È‚ç“Ç‚Ý”ò‚Î‚·
 
 		$name        =~ s/[\n\r\t]/ /g ;
 		$description =~ s/[\n\r\t]/ /g ;
@@ -191,7 +193,7 @@ sub users_lookup {  # usage: @userinfo = users_lookup(@user_id_list)
 	return @user_info ;
 }
 
-#https://github.com/freebsdgirl/ggautoblocker/blob/master/ggautoblocker.pl  ã‚ˆã‚Šã‚³ãƒ”ãƒ¼æ”¹å¤‰
+#https://github.com/freebsdgirl/ggautoblocker/blob/master/ggautoblocker.pl  ‚æ‚èƒRƒs[‰ü•Ï
 # ====================
 sub get_rate_limit {
 	my $type = shift;
@@ -273,23 +275,9 @@ sub wait_for_rate_limit {
 		sleep ( $time - time + 1 );
 		$limit = get_rate_limit($type);
 		$time = $limit->{'reset'} ;
-		if ( ($time - time) <= 0 ){		# resetãŒå¤ã„ã“ã¨ãŒã‚ã‚‹
+		if ( ($time - time) <= 0 ){		# reset‚ªŒÃ‚¢‚±‚Æ‚ª‚ ‚é
 			$time = time + 60; }
 		if ($debug ==1) { print STDERR "wait_for_rate_limit next Loop: ". $time . "  limit is : ". $limit->{'remaining'} ." type is : ". $type. "\n"; }
 	}
 
 }
-
-# ====================
-__END__
----
-creds:
-    consumer_key:        #enter keys here
-    consumer_secret:     #enter keys here
-    access_token:        &token
-                         #enter keys here
-    access_token_secret: &token_secret
-                         #enter keys here
-    token:               *token
-    token_secret:        *token_secret
-    ssl:                 1
