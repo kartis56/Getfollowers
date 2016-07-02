@@ -13,8 +13,7 @@ use YAML::XS        ;
 
 
 my $dbh = ConnectToMySql(my $Database);
-<<<<<<< HEAD
- $dbh->{mysql_use_result} = 1;
+　 $dbh->{mysql_use_result} = 1;
 =pod
 =cut
 my $query = "show tables;  ";	
@@ -81,22 +80,14 @@ $names = $sth->{'NAME'};  $numFields = $sth->{'NUM_OF_FIELDS'};
     print "Found a row: id = $ref->{'id'}, name = $ref->{'name'}\n";
   }
 
-=======
-my $query = "select id FROM user_lookup_ids  ";	
-my $sth = $dbh->prepare($query);
-#$sth->execute();
->>>>>>> effe08bd27e008e951402af1c8ab3d53dcb56a2d
 
 print "\n$query\n\n";
 #$query = "insert into user_lookup_ids (id) values '999999999999999999'";
 #$sth = $dbh->prepare($query);
 #$sth->execute();
 
-<<<<<<< HEAD
  $sth->finish(); 
 $dbh->disconnect();
-=======
->>>>>>> effe08bd27e008e951402af1c8ab3d53dcb56a2d
 
 my ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst) = localtime time;
 
@@ -129,10 +120,6 @@ exit;
 
 #----------------------------------------------------------------------
 sub ConnectToMySql {
-<<<<<<< HEAD
-=======
-#----------------------------------------------------------------------
->>>>>>> effe08bd27e008e951402af1c8ab3d53dcb56a2d
 
    my ($db) = @_;
 
@@ -144,7 +131,6 @@ sub ConnectToMySql {
    my $userid = $keys->{userid};
    my $passwd = $keys->{passwd};
 
-<<<<<<< HEAD
 
    chomp ($database, $host, $userid, $passwd);
    
@@ -152,20 +138,8 @@ sub ConnectToMySql {
    
    # make connection to database
    my $l_dbh = DBI->connect($connectionInfo,$userid,$passwd, { RaiseError => 1 }) or die "connect Eroor";
-=======
-   chomp ($database, $host, $userid, $passwd);
-   
-   my $connectionInfo="dbi:mysql:$db;$host:3306";
-   # make connection to database
-   my $l_dbh = DBI->connect($connectionInfo,$userid,$passwd, { RaiseError => 1, AutoCommit => 1 });
->>>>>>> effe08bd27e008e951402af1c8ab3d53dcb56a2d
    return $l_dbh;
 =pod
 =cut
 
 }
-
-<<<<<<< HEAD
-=======
-exit;
->>>>>>> effe08bd27e008e951402af1c8ab3d53dcb56a2d
