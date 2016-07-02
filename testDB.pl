@@ -143,8 +143,3 @@ sub ConnectToMySql {
 =cut
 
 }
-
-<<<<<<< HEAD
-=======
-exit;
->>>>>>> effe08bd27e008e951402af1c8ab3d53dcb56a2d
