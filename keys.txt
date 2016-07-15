@@ -1,0 +1,11 @@
+---
+creds:
+    consumer_key:        nantoka
+    consumer_secret:     kantoka
+    access_token:        &token
+                         hoge
+    access_token_secret: &token_secret
+                         hogee
+    token:               *token
+    token_secret:        *token_secret
+    ssl:                 1
