@@ -1,11 +1,11 @@
 #!/usr/bin/perl
 
-# Twitterで特定ユーザのフォロワー一覧を取得し、タブ区切りテキスト形式で出力する
+# Twitterで特定ユーザのフォロワー一覧を取得し、テキスト形式で出力する
 #
-# Usage:  ./get_followers.pl  [USER]
+# Usage:  ./get_followers.pl 
 #
-# USER（screen name）で指定したユーザのフォロワー一覧を取得する
-# 省略時は自分自身のフォロワー一覧を取得する
+# spamer.txtで指定したユーザ(screen_name)一覧の、自分がブロック中以外のフォロワー一覧を取得する
+# 出力結果は output.txt
 # 
 #// cygwin　でperl -MCPAN -e shell
 # cpan install Encode inc:latest Net::Twitter::Lite YAML::XS Scalar::Util 
@@ -13,7 +13,7 @@
 #
 # あらかじめ https://dev.twitter.com/apps より登録して、OAuth認証に必要な
 # consumer_key, consumer_secret, access_token, access_token_secret を取得し、
-# ソース内の twitter_oauth サブルーチン内に記載すること
+# keys.txtに記載すること
 #
 
 use warnings ;
@@ -36,7 +36,7 @@ open IN, '<spamer.txt' or die "Error : file can't open spamer.txt\n";
 
 
 my $debug = 1;
-my $conf         = LoadFile( "keys.txt" );
+my $conf         = LoadFile( "../keys.txt" );
 my %creds        = %{$conf->{creds}};
 my $twit = Net::Twitter::Lite::WithAPIv1_1->new(%creds);
 
@@ -46,8 +46,9 @@ my $twit = Net::Twitter::Lite::WithAPIv1_1->new(%creds);
 #my $twit ;
 #twitter_oauth() ;
 #
+STDOUT->autoflush(1);
 while (<IN>) {
-	print STDERR $_;
+	print STDERR $_ ,"\n";
 	get_followers_list($_);
 }
 
@@ -60,16 +61,6 @@ sub get_followers_list{
 	# IDリスト取得
 	my @ids = get_followers($_) ;
 
-# ユーザリストに変換
-# 100件ごとに分割して取得
-	TMP->autoflush(1);
-	while (my @ids_100 = splice(@ids,0,100)){
-		wait_for_rate_limit('lookup_users');
-	#	wait_for_rate_limit('friendships');
-		my @users = users_lookup(@ids_100) ;
-		$" = "\r\n" ;
-		print TMP "@users\r\n" ;
-	}
 }
 
 # ====================
@@ -94,9 +85,21 @@ sub get_followers {  # Usage: @ids = get_followers($screen_name) ;
 			
 		$ids_ref = $followers_ref->{'ids'} ;
 
-		push @l_ids, @$ids_ref ;
+		@l_ids = @{$ids_ref} ;
 		$arg{'cursor'} = $followers_ref->{'next_cursor'} ;
 		print STDERR "Fetched: ids=", scalar @$ids_ref, ",next_cursor=$arg{'cursor'}\n" ;
+
+# ユーザリストに変換
+# 100件ごとに分割して取得
+	TMP->autoflush(1);
+	while (my @ids_100 = splice(@l_ids,0,100)){
+		wait_for_rate_limit('lookup_users');
+	#	wait_for_rate_limit('friendships');
+		my @users = users_lookup(@ids_100) ;
+		$" = "\r\n" ;
+		print TMP "@users\r\n" ;
+	}
+
 	}
 
 	}; #END of eval
@@ -109,7 +112,7 @@ sub get_followers {  # Usage: @ids = get_followers($screen_name) ;
 	
 	}
 
-	return @l_ids ;
+	return  ;
 } 
 
 # ====================
@@ -151,35 +154,36 @@ sub users_lookup {  # usage: @userinfo = users_lookup(@user_id_list)
 		}
     my $i = 0;
 	my @user_info ;
-	my @ss;
+	my $ss;
 
-	@ss =  @{$rel_ref}[$i]->{'connections'};
-	my $tmp =  join(",",  @{$ss[0]});
-	if( $debug ==1 ) {print "tmp  " , $tmp , "\n" ; }
+	$ss =  $rel_ref->[$i]->{'connections'};
+	#print "connections =  @{$ss[0]}  \n";
+	my $tmp =  join(",",  @{$ss});
+	if( $debug ==1 ) {print "connections =  $tmp \n" ; }
 
 	foreach  (@$user_ref ) {
 
 		my $screen_name       = $_->{'screen_name'}       // '' ;
+=pod
 		my $name              = $_->{'name'}              // '' ;
 		my $id              = $_->{'id'}              // '' ;
 		my $description       = $_->{'description'}       // '' ;
 		my $following          = $_->{'following'}        // '' ;
 		my $followers_count          = $_->{'followers_count'}        // '' ;
+=cut
 		my $protected          = $_->{'protected'}        // '' ;  #非公開アカウント
 		if ( $protected == 1 ) { $i++; next; }
 	
-		@ss          =   @{$rel_ref}[$i]->{'connections'}        // '' ;			# 関係性
+		$ss          =   @{$rel_ref}[$i]->{'connections'}        // '' ;			# 関係性
 
-		my @d =  @{$ss[0]} ;
-		my $dd = join(",",  @{$ss[0]});
+		my $dd = join(",",  @{$ss});
 		if ( $debug ==1) {
-			print "connections :". @d . "\n"; 
 			print "when $dd\n" ;
 		}
 		if ( $dd =~ /blocking/i ) { $i++; next; }		# block済みなら読み飛ばす
 
-		$name        =~ s/[\n\r\t]/ /g ;
-		$description =~ s/[\n\r\t]/ /g ;
+#		$name        =~ s/[\n\r\t]/ /g ;
+#		$description =~ s/[\n\r\t]/ /g ;
 
 		my $userinfo = "$screen_name" ;
 		Encode::is_utf8($userinfo) and $userinfo = Encode::encode('utf-8',$userinfo) ;
