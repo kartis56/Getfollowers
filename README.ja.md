@@ -1,34 +1,36 @@
-���݃t�H�����[�Ȃǂ�SPAM�Ǝ҂��������󂯂���̂�
-���̃t�H�����[����J���Ĉꊇ����R4S���y�ɍs���Ǘ����邽�߂ɊJ������
+相互フォロワーなどにSPAM業者が多く見受けられるので
+そのフォロワーを手繰って一括してR4Sを楽に行い管理するために開発する
 
-���܂Ńe�L�X�g�t�@�C���Ƀ��X�g�Ȃǂ��烆�[�U�����R�s�y���āA�G�f�B�^�̃}�N���Œ��o�E�\�[�g�}�[�W����R4S���Ă�����
-���X�g��t�H�����[�̑S���擾���u���E�U����s���͔̂��ɏd���A�������t�H�����[������悤�Ȃ��̂�API���E�Ȃǂœr���܂ł������Ȃ������肷��̂�
-�܂Ƃ��ɂ��ɂ�API���g�������Ȃ�
+今までテキストファイルにリストなどからユーザ名をコピペして、エディタのマクロで抽出・ソートマージしてR4Sしていたが
+リストやフォロワーの全件取得をブラウザから行うのは非常に重く、数万件フォロワーがあるようなものはAPI限界などで途中までしか取れなかったりするので
+まともにやるにはAPIを使うしかない
 
 
-�P�DSPAM���[�U�̃t�H�����[���擾���āA�u���b�N�ς݈ȊO�����O�������X�g����� �i������R4S�A�v���Ȃǂŕ񍐂ł���j
-�@�@�iuser�e�[�u�������A�����ɂ�����̂�API�g�킸�Ɏ擾�ł���悤�ɂ��関�����j
-�@�@
-�@�@1.1 Unknown�e�[�u�������擾����screen_name�i���[�U���j���Ђ�����i�[����i�e�[�u���쐬�ς݁A�e�L�X�g���烍�[�h����sql�쐬�ς݁A�e�[�u���֒��ڒǉ�����R�[�h�������j
-�@�@
-�Q�D�u���b�N�ς݂��ǂ�����user���擾���Ȃ��ƂȂ�Ȃ����AAPI���E�����Ȃ��̂Ńu���b�N�ς݂̓L���b�V�����Ă�������
-�@�@�iblocked�e�[�u���쐬�ς݁A�u���b�N�ςݎ�荞�ݍς݁j
-�@�@
-�@�@2.1 �P���Ńu���b�N�������̂��e�L�X�g����blocked�e�[�u���Ɏ�荞�݂����iuser�e�[�u�����X�V�E�ǉ�����j
-�@�@�i���쐬�j
-�@�@
+１．SPAMユーザのフォロワーを取得して、ブロック済み以外を除外したリストを作る （既存のR4Sアプリなどで報告できる）
+　　（userテーブルを作り、そこにあるものはAPI使わずに取得できるようにする未実装）
+　　
+　　1.1 Unknownテーブルを作り取得したscreen_name（ユーザ名）をひたすら格納する（テーブル作成済み、テキストからロードするsql作成済み、テーブルへ直接追加するコード未実装）
+　　
+２．ブロック済みかどうかはuser情報取得しないとならないが、API限界が少ないのでブロック済みはキャッシュしておきたい
+　　（blockedテーブル作成済み、ブロック済み取り込み済み）
+　　
+　　2.1 単発でブロックしたものをテキストからblockedテーブルに取り込みたい（userテーブルも更新・追加する）
+　　（未作成）
+　　
 
-�R�D�u���b�N�ς݃e�[�u����������user�����擾����user�e�[�u���Ɋi�[����B�i�[�ς݂�done��true�ɂ���
-�@�@�i���쐬�j
-�@�@
+３．ブロック済みテーブルをつかってuser情報を取得してuserテーブルに格納する。格納済みはdoneをtrueにする
+　　（未作成）
+　　
 
-�S�DUnknown�e�[�u������Blocked�ɂȂ��A�o�^�񐔂̑����Ń��X�g������R4S�p�e�L�X�g�����i�o�͌�폜�j
-�@�@�i���쐬�j
-�@�@
-�@�@4.1 R4S�p���X�g���g����R4S������B���A�P�̃t�H�����[�擾���X�g�֒ǉ�����
-�@�@
-�T�Drate_limit���m�ۂ��Ă����āA��L�R�[�h�Ń��[�v�̓x�ɏK�����Ȃ��ōςނ悤�ɂ���
-�@�@�i�e�[�u����`�͍쐬�ς݁j
-�@�@
-�@�@
-�T�DTwitter�̒���ȃ��X�g����user���擾����Blocked�ɂȂ����[�U��Unknown�Ɋi�[����i�܂��͂P�Ɠ�������Ƃ��A������Blocked���Q�Ƃ���悤�C������j
+４．UnknownテーブルからBlockedにない、登録回数の多順でリスト化してR4S用テキストを作る（出力後削除）
+　　（未作成）
+　　
+　　4.1 R4S用リストを使ってR4Sをする。かつ、１のフォロワー取得リストへ追加する
+
+５．rate_limitを確保しておいて、上記コードでループの度に習得しないで済むようにする
+　　（テーブル定義は作成済み）
+
+
+６．Twitterの長大なリストからuserを取得してBlockedにないユーザをUnknownに格納する（まずは１と同じ動作とし、いずれBlockedを参照するよう修正する）
+
+
