@@ -6,19 +6,18 @@
 #
 # 
 #// cygwin　でperl -MCPAN -e shell
-# cpan install Encode inc:latest Net::Twitter::Lite YAML::XS Scalar::Util 
+# cpan install Encode Net::Twitter::Lite YAML::XS Scalar::Util Data::Dumper IO::Handle
 #
 #
 # あらかじめ https://dev.twitter.com/apps より登録して、OAuth認証に必要な
 # consumer_key, consumer_secret, access_token, access_token_secret を取得し、
-# keys.txtに記載すること
+# ../keys.txtに記載すること
 #
 
 use warnings ;
 use strict ;
 use Data::Dumper;
 use Net::Twitter::Lite::WithAPIv1_1;
-use File::Spec;
 eval 'use Net::Twitter::Lite ; 1' or  # Twitter API用モジュール、ない場合はエラー表示
 	die "ERROR : cannot load Net::Twitter::Lite\n" ;
 eval 'use Encode ; 1' or              # 文字コード変換、ない場合はエラー表示
@@ -35,8 +34,9 @@ my $conf         = LoadFile( "../keys.txt" );
 my %creds        = %{$conf->{creds}};
 my $twit = Net::Twitter::Lite::WithAPIv1_1->new(%creds);
 
+STDOUT->autoflush(1);
 
-	 get_blocks_list();
+get_blocks_list();
 
 
 close TMP;
@@ -68,14 +68,13 @@ sub get_blocks_list {  # Usage: get_blocks_list ;
 
 		$blocks_ref = $twit->blocking_ids( {%arg} );
 		$ids_ref = $blocks_ref->{'ids'} ;
-
 		@l_ids = @{$ids_ref} ;
 		$arg{'cursor'} = $blocks_ref->{'next_cursor'} ;
 		print STDERR "Fetched: users=",  scalar( @$ids_ref ), ", next_cursor = $arg{'cursor'}\n" ;
 			
 # 出力
 		
-	my @users =  join "\r\n", @l_ids;
+		my @users =  join "\r\n", @l_ids;
 	#	my @users = print_blocks_list( @l_ids ) ;
 	#	$" = "\r\n" ;
 		print TMP "@users\r\n" ;

@@ -6,13 +6,13 @@
 #
 # 
 #// cygwin　でperl -MCPAN -e shell
-# cpan install Encode inc:latest Net::Twitter::Lite YAML::XS Scalar::Util 
+# cpan install Encode Net::Twitter::Lite YAML::XS Scalar::Util Data::Dumper DBI DBD::mysql Teng lib
 #
 #
 # あらかじめ https://dev.twitter.com/apps より登録して、OAuth認証に必要な
 # consumer_key, consumer_secret, access_token, access_token_secret を取得し、
 # ../keys.txtに記載すること
-#
+# ../accessKey にDB、host,user,passwdを記載すること
 
 
 
@@ -20,11 +20,8 @@ use warnings ;
 use strict ;
 use Data::Dumper;
 use Net::Twitter::Lite::WithAPIv1_1;
-use File::Spec;
 eval 'use Net::Twitter::Lite ; 1' or  # Twitter API用モジュール、ない場合はエラー表示
 	die "ERROR : cannot load Net::Twitter::Lite\n" ;
-eval 'use Encode ; 1' or              # 文字コード変換、ない場合はエラー表示
-	die "ERROR : cannot load Encode\n" ;
 use YAML::XS      ;
 use Scalar::Util 'blessed';
 use DBI;

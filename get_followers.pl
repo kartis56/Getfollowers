@@ -8,7 +8,7 @@
 # 出力結果は output.txt
 # 
 #// cygwin　でperl -MCPAN -e shell
-# cpan install Encode inc:latest Net::Twitter::Lite YAML::XS Scalar::Util 
+# cpan install Encode  Net::Twitter::Lite YAML::XS Scalar::Util IO::Handle Data::Dumper
 #
 #
 # あらかじめ https://dev.twitter.com/apps より登録して、OAuth認証に必要な
@@ -20,7 +20,7 @@ use warnings ;
 use strict ;
 use Data::Dumper;
 use Net::Twitter::Lite::WithAPIv1_1;
-use File::Spec;
+
 eval 'use Net::Twitter::Lite ; 1' or  # Twitter API用モジュール、ない場合はエラー表示
 	die "ERROR : cannot load Net::Twitter::Lite\n" ;
 eval 'use Encode ; 1' or              # 文字コード変換、ない場合はエラー表示
