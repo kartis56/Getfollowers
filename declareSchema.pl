@@ -1,9 +1,14 @@
 #! perl
+# Dumper of ./lib/MyApp/DB/Schema.pm 
+
 use strict;
 use warnings;
 use DBI;
 use Teng::Schema::Dumper;
 use YAML::XS      ;
+use DateTime;
+use Time::Piece;
+open OUT, '>./lib/MyApp/DB/Schema.pm' ;
 
    my $keys = YAML::XS::LoadFile( "../accessKey")  or die "Can't access login credentials";
 
@@ -18,7 +23,26 @@ use YAML::XS      ;
    my $connectionInfo="dbi:mysql:$database;$host:3306";
 
    my $dbh = DBI->connect($connectionInfo,$userid,$passwd, { RaiseError => 1 }) or die "connect Eroor";
-print Teng::Schema::Dumper->dump(
+print OUT Teng::Schema::Dumper->dump(
     dbh       => $dbh,
     namespace => 'MyApp::DB',
+
+    inflate   => +{ rate_limit => q|
+            use Date::Parse;
+            use DateTime;
+        inflate qr/.+_reset/ => sub {
+            my ($col_value) = @_;
+            return str2time($col_value,'JST');
+        };
+        deflate qr/.+_reset/ => sub {
+            my ($col_value) = @_;
+            return  DateTime->from_epoch(epoch => $col_value, time_zone => 'Asia/Tokyo');
+        };
+    |,},
+
+
 ), "\n";
+
+
+close OUT;
+exit ;
