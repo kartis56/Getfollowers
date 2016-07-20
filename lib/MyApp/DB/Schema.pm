@@ -42,71 +42,83 @@ table {
 
 table {
     name 'rate_limit';
-    pk ;
+    pk 'id';
     columns (
+        {name => 'id', type => 4},
         {name => 'list_limit', type => 4},
         {name => 'list_remain', type => 4},
-        {name => 'list_reset', type => 12},
+        {name => 'list_reset', type => 11},
         {name => 'list_memberships_limit', type => 4},
         {name => 'list_memberships_remain', type => 4},
-        {name => 'list_memberships_reset', type => 12},
+        {name => 'list_memberships_reset', type => 11},
         {name => 'list_members_limit', type => 4},
         {name => 'list_members_remain', type => 4},
-        {name => 'list_members_reset', type => 12},
+        {name => 'list_members_reset', type => 11},
         {name => 'list_show_limit', type => 4},
         {name => 'list_show_remain', type => 4},
-        {name => 'list_show_reset', type => 12},
+        {name => 'list_show_reset', type => 11},
         {name => 'list_statuses_limit', type => 4},
         {name => 'list_statuses_remain', type => 4},
-        {name => 'list_statuses_reset', type => 12},
+        {name => 'list_statuses_reset', type => 11},
         {name => 'app_limit_limit', type => 4},
         {name => 'app_limit_remain', type => 4},
-        {name => 'app_limit_reset', type => 12},
+        {name => 'app_limit_reset', type => 11},
         {name => 'friend_list_limit', type => 4},
         {name => 'friend_list_remain', type => 4},
-        {name => 'friend_list_reset', type => 12},
+        {name => 'friend_list_reset', type => 11},
         {name => 'friend_lookup_limit', type => 4},
         {name => 'friend_lookup_remain', type => 4},
-        {name => 'friend_lookup_reset', type => 12},
+        {name => 'friend_lookup_reset', type => 11},
         {name => 'friend_show_limit', type => 4},
         {name => 'friend_show_remain', type => 4},
-        {name => 'friend_show_reset', type => 12},
+        {name => 'friend_show_reset', type => 11},
         {name => 'blocks_list_limit', type => 4},
         {name => 'blocks_list_remain', type => 4},
-        {name => 'blocks_list_reset', type => 12},
+        {name => 'blocks_list_reset', type => 11},
         {name => 'blocks_ids_limit', type => 4},
         {name => 'blocks_ids_remain', type => 4},
-        {name => 'blocks_ids_reset', type => 12},
+        {name => 'blocks_ids_reset', type => 11},
         {name => 'users_r4s_limit', type => 4},
         {name => 'users_r4s_remain', type => 4},
-        {name => 'users_r4s_reset', type => 12},
+        {name => 'users_r4s_reset', type => 11},
         {name => 'users_search_limit', type => 4},
         {name => 'users_search_remain', type => 4},
-        {name => 'users_search_reset', type => 12},
+        {name => 'users_search_reset', type => 11},
         {name => 'users_lookup_limit', type => 4},
         {name => 'users_lookup_remain', type => 4},
-        {name => 'users_lookup_reset', type => 12},
+        {name => 'users_lookup_reset', type => 11},
         {name => 'followers_ids_limit', type => 4},
         {name => 'followers_ids_remain', type => 4},
-        {name => 'followers_ids_reset', type => 12},
+        {name => 'followers_ids_reset', type => 11},
         {name => 'followers_list_limit', type => 4},
         {name => 'followers_list_remain', type => 4},
-        {name => 'followers_list_reset', type => 12},
+        {name => 'followers_list_reset', type => 11},
         {name => 'friends_follow_ids_limit', type => 4},
         {name => 'friends_follow_ids_remain', type => 4},
-        {name => 'friends_follow_ids_reset', type => 12},
+        {name => 'friends_follow_ids_reset', type => 11},
         {name => 'friends_follow_list_limit', type => 4},
         {name => 'friends_follow_list_remain', type => 4},
-        {name => 'friends_follow_list_reset', type => 12},
+        {name => 'friends_follow_list_reset', type => 11},
         {name => 'friends_list_limit', type => 4},
         {name => 'friends_list_remain', type => 4},
-        {name => 'friends_list_reset', type => 12},
+        {name => 'friends_list_reset', type => 11},
         {name => 'friends_ids_limit', type => 4},
         {name => 'friends_ids_remain', type => 4},
-        {name => 'friends_ids_reset', type => 12},
+        {name => 'friends_ids_reset', type => 11},
         {name => 'lastupdt', type => 11},
     );
-};
+
+            use Date::Parse;
+            use DateTime;
+        inflate qr/.+_reset/ => sub {
+            my ($col_value) = @_;
+            return str2time($col_value,'JST');
+        };
+        deflate qr/.+_reset/ => sub {
+            my ($col_value) = @_;
+            return  DateTime->from_epoch(epoch => $col_value, time_zone => 'Asia/Tokyo');
+        };
+    };
 
 table {
     name 'user_ids';
