@@ -32,7 +32,7 @@ use lib './lib';
 use MyAPP::DB;
 use MyApp::DB::Schema;
 
-my $debug = 1;
+my $debug = 0;
 my $conf         = YAML::XS::LoadFile( "../keys.txt" );
 my %creds        = %{$conf->{creds}};
 my $twit = Net::Twitter::Lite::WithAPIv1_1->new(%creds);
@@ -86,7 +86,7 @@ my $twit = Net::Twitter::Lite::WithAPIv1_1->new(%creds);
      connect_info => [$connectionInfo, $userid, $passwd, +{ RaiseError => 1, mysql_use_result => 1 }, ],
      schema_class => 'MyApp::DB::Schema', ) or die "connect Eroor";
 
-  my $row = $teng->single_by_sql ( q{select * from rate_limit}   ) ;
+  my $row = $teng->find_or_create ( 'rate_limit',{id => 1});
   if ($debug == 1) { warn Dumper   $row->get_columns ; }
   
   $teng->update( 'rate_limit',
