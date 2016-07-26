@@ -6,8 +6,6 @@ use warnings;
 use DBI;
 use Teng::Schema::Dumper;
 use YAML::XS      ;
-use DateTime;
-use Time::Piece;
 open OUT, '>./lib/MyApp/DB/Schema.pm' ;
 
    my $keys = YAML::XS::LoadFile( "../accessKey")  or die "Can't access login credentials";
@@ -19,10 +17,10 @@ open OUT, '>./lib/MyApp/DB/Schema.pm' ;
 
 
    chomp ($database, $host, $userid, $passwd);
-   
    my $connectionInfo="dbi:mysql:$database;$host:3306";
 
-   my $dbh = DBI->connect($connectionInfo,$userid,$passwd, { RaiseError => 1 }) or die "connect Eroor";
+   my $dbh = DBI->connect($connectionInfo,$userid,$passwd, { RaiseError => 1 }) or die "connect Error";
+
 print OUT Teng::Schema::Dumper->dump(
     dbh       => $dbh,
     namespace => 'MyApp::DB',
@@ -39,8 +37,6 @@ print OUT Teng::Schema::Dumper->dump(
             return  DateTime->from_epoch(epoch => $col_value, time_zone => 'Asia/Tokyo');
         };
     |,},
-
-
 ), "\n";
 
 
