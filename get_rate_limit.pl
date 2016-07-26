@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 
-# get_rate_limit
+# get_rate_limit を取得しDBを更新する
 #
 # Usage:  ./get_rate_limit.pl
 #
@@ -20,14 +20,9 @@ use warnings ;
 use strict ;
 use Data::Dumper;
 use Net::Twitter::Lite::WithAPIv1_1;
-eval 'use Net::Twitter::Lite ; 1' or  # Twitter API用モジュール、ない場合はエラー表示
-	die "ERROR : cannot load Net::Twitter::Lite\n" ;
 use YAML::XS      ;
 use Scalar::Util 'blessed';
-use DBI;
-use DBD::mysql;
-#use Teng;
-#use Teng::Schema::Loader;
+
 use lib './lib';
 use MyAPP::DB;
 use MyApp::DB::Schema;
@@ -76,7 +71,6 @@ my $twit = Net::Twitter::Lite::WithAPIv1_1->new(%creds);
    my $userid = $keys->{userid};
    my $passwd = $keys->{passwd};
 
-
    chomp ($database, $host, $userid, $passwd);
    
    my $connectionInfo="dbi:mysql:$database;$host:3306";
@@ -84,7 +78,7 @@ my $twit = Net::Twitter::Lite::WithAPIv1_1->new(%creds);
    # make connection to database
    my $teng = MyApp::DB->new(
      connect_info => [$connectionInfo, $userid, $passwd, +{ RaiseError => 1, mysql_use_result => 1 }, ],
-     schema_class => 'MyApp::DB::Schema', ) or die "connect Eroor";
+     schema_class => 'MyApp::DB::Schema', ) or die "connect Error";
 
   my $row = $teng->find_or_create ( 'rate_limit',{id => 1});
   if ($debug == 1) { warn Dumper   $row->get_columns ; }
