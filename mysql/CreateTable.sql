@@ -6,13 +6,13 @@ drop table if exists  Unknown;
 
 
 create table user_ids (
-    id varchar(19) primary key, screen_name varchar(16), protected TINYINT default false,
-    followers_cnt int default 0, friends_cnt int default 0, deleted TINYINT default false, 
+    id varchar(19) primary key, screen_name varchar(16), protected TINYINT default 0,
+    followers_cnt int default 0, friends_cnt int default 0, deleted TINYINT default 0, 
     lastupdt DATETIME default CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP, 
     INDEX idx_name(screen_name), INDEX idx_protect(protected),  INDEX idx_delete(deleted) ) ;
                                
 create table Blocked (
-    id varchar(19) primary key, 
+    id varchar(19) primary key, done TINYINT default 0,
     lastupdt DATETIME default CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
     ) ;
 
