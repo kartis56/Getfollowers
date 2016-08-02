@@ -22,45 +22,52 @@ use Data::Dumper;
 use Net::Twitter::Lite::WithAPIv1_1;
 use YAML::XS      ;
 use Scalar::Util 'blessed';
+use IO::Handle;            #オートフラッシュ
 
 use lib './lib';
 use MyAPP::DB;
 use MyApp::DB::Schema;
+#use POSIX::strftime 'strftime';
 
 my $debug = 0;
 my $conf         = YAML::XS::LoadFile( "../keys.txt" );
 my %creds        = %{$conf->{creds}};
 my $twit = Net::Twitter::Lite::WithAPIv1_1->new(%creds);
 
+STDOUT->autoflush(1);
+STDERR->autoflush(1);
 
-	my $m ;
-	
-	my $err ;
-	do {
-		eval{
-			$m = $twit->rate_limit_status    or die 'Error rate_limit_status';
-		};
-		print "App remaining  $m->{'resources'}->{'application'}->{'/application/rate_limit_status'}->{'remaining'}   \n";
-	
-		if ( $err = $@ ) {
+    my $m ;
+    
+    my $err = 1;
+    while ( $err ) {
+        eval{
+            $m = $twit->rate_limit_status    or die 'Error Get rate_limit_status';
+        };
+    
+        if ( $err = $@ ) {
+          my $time = $m->{'resources'}->{'application'}->{'/application/rate_limit_status'}->{'reset'} || 0;
+          my $sleep_time = $time - time;
 
-			if ( $m->{'resources'}->{'application'}->{'/application/rate_limit_status'}->{'remaining'} == 0 ) {
-				if ($debug ==1) {
-					print "Zero remaining  $m->{'resources'}->{'application'}->{'/application/rate_limit_status'}->{'remaining'} \n"; 
-					print " -- API limit reached, waiting for  ( $m->{'resources'}->{'application'}->{'/application/rate_limit_status'}->{'reset'} - time )  seconds --\n" ;
-				}
-				
-				sleep ( $m->{'resources'}->{'application'}->{'/application/rate_limit_status'}->{'reset'} - time + 1 );
-			}
- 
-			warn "when get_rate_limit  - HTTP Response Code:  $err->code \n",
-			"\n - HTTP Message......: ", $err->message, "\n",
-			"\n - Twitter error.....: ", $err->error, "\n";
-		
-		}  # end $err 
-	
-	} while ( $err );
-	if ( $debug == 1)  { warn Dumper   $m ; }
+            warn "when get_rate_limit  - HTTP Response Code:  $err->code \n",
+            "\n - HTTP Message......: ", $err->message, "\n",
+            "\n - Twitter error.....: ", $err->error, "\n";
+            if ( $m->{'resources'}->{'application'}->{'/application/rate_limit_status'}->{'remaining'} == 0 ) {  #get error
+                if ($debug ==1) {
+                    print "Zero remaining  $m->{'resources'}->{'application'}->{'/application/rate_limit_status'}->{'remaining'} \n"; 
+                    print " -- API limit reached, waiting for ",
+                         strftime( "%Y/%m/%d %H:%M:%S",localtime( $sleep_time )),
+                           "  seconds --\n" ;
+                }
+                print STDERR " -- APP Api limit reached in get_rate_limit, waiting for $sleep_time seconds --" ; 
+                sleep ( $sleep_time + 1 );
+            }
+        } else { # no err 
+          print  "App remaining  $m->{'resources'}->{'application'}->{'/application/rate_limit_status'}->{'remaining'}   \n";
+        }
+    
+    }  ;
+    if ( $debug == 1)  { warn Dumper   $m ; }
 
 
 
@@ -78,7 +85,7 @@ my $twit = Net::Twitter::Lite::WithAPIv1_1->new(%creds);
    # make connection to database
    my $teng = MyApp::DB->new(
      connect_info => [$connectionInfo, $userid, $passwd, +{ RaiseError => 1, mysql_use_result => 1 }, ],
-     schema_class => 'MyApp::DB::Schema', ) or die "connect Error";
+     schema_class => 'MyApp::DB::Schema', ) or die "connect Error\n";
 
   my $row = $teng->find_or_create ( 'rate_limit',{id => 1});
   if ($debug == 1) { warn Dumper   $row->get_columns ; }
@@ -148,7 +155,7 @@ my $twit = Net::Twitter::Lite::WithAPIv1_1->new(%creds);
 
   
   
-  });
+  })or die "update Error\n";
 
 
 exit ;
