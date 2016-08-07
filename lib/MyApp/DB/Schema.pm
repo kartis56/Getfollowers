@@ -3,6 +3,17 @@ use strict;
 use warnings;
 use Teng::Schema::Declare;
 table {
+    name '4R4s';
+    pk 'screen_name';
+    columns (
+        {name => 'screen_name', type => 12},
+        {name => 'id', type => 12},
+        {name => 'count', type => 4},
+        {name => 'lastupdt', type => 11},
+    );
+};
+
+table {
     name 'Blocked';
     pk 'id';
     columns (
@@ -22,11 +33,11 @@ table {
 };
 
 table {
-    name 'follower_ids';
+    name 'Whitelist';
     pk 'id';
     columns (
         {name => 'id', type => 12},
-        {name => 'count', type => 4},
+        {name => 'screen_name', type => 12},
         {name => 'lastupdt', type => 11},
     );
 };
@@ -116,7 +127,7 @@ table {
         };
         deflate qr/.+_reset/ => sub {
             my ($col_value) = @_;
-            return  DateTime->from_epoch(epoch => $col_value, time_zone => 'Asia/Tokyo');
+            return  localtime( $col_value);
         };
     };
 

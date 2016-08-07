@@ -1,8 +1,9 @@
 drop table if exists  user_ids;
 drop table if exists  Blocked;
-drop table if exists  follower_ids;
-drop table if exists  rate_limit;
+drop table if exists  Whitelist;
+drop table if exists  4R4s;
 drop table if exists  Unknown;
+drop table if exists  rate_limit;
 
 
 create table user_ids (
@@ -16,10 +17,16 @@ create table Blocked (
     lastupdt DATETIME default CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
     ) ;
 
-create table follower_ids (
-    id varchar(19) primary key, count int,
+create table Whitelist (
+    id varchar(19) primary key, screen_name varchar(16), 
     lastupdt DATETIME default CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    index flw_idx(count) ) ;
+    index white_idx(screen_name) ) ;
+
+create table 4R4s (
+    screen_name varchar(16) primary key, id varchar(19) default 0, count int default 0, 
+    lastupdt DATETIME default CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    index idx_r4s(screen_name) ) ;
+
 
 create table Unknown (
     screen_name varchar(16),
