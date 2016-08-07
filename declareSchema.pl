@@ -34,7 +34,7 @@ print OUT Teng::Schema::Dumper->dump(
         };
         deflate qr/.+_reset/ => sub {
             my ($col_value) = @_;
-            return  DateTime->from_epoch(epoch => $col_value, time_zone => 'Asia/Tokyo');
+            return  localtime( $col_value);
         };
     |,},
 ), "\n";
