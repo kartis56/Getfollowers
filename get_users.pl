@@ -22,7 +22,7 @@ use YAML::XS        'LoadFile';
 use Scalar::Util 'blessed';
 use IO::Handle;            #オートフラッシュ
 use POSIX;
-#use POSIX::strftime ;
+#if ($debug >= 1) {  use DBIx::QueryLog;   }    #デバッグ時はクエリーログを出す
 
 use lib './lib';
 use MyAPP::DB;
@@ -65,12 +65,11 @@ my $wait_remain = 1;
        die $@ unless blessed $err ;
     }
 
-#if ($debug >= 1) {  use DBIx::QueryLog;   }    #デバッグ時はクエリーログを出す
 
 
 #取りたい対象の件数取得
 my $count = $teng->count( 'Blocked', 'id', +{ done => '0' } ) or  die "Maybe Allready Getted Blocked user \n" ;
-if( $debug >= 1 ) { $count = 5000; }     #デバッグ時はループ二回で終わらせといてやらあ
+if( $debug >= 1 ) { $count = 200; }     #デバッグ時はループ二回で終わらせといてやらあ
 $count = POSIX::ceil( $count /100 );
 print "Blocked Loop Counter $count \n";
 while ( $count > 0 ) {
