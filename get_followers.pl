@@ -21,8 +21,6 @@ use strict ;
 use Data::Dumper;
 use Net::Twitter::Lite::WithAPIv1_1;
 
-eval 'use Net::Twitter::Lite ; 1' or  # Twitter API用モジュール、ない場合はエラー表示
-    die "ERROR : cannot load Net::Twitter::Lite\n" ;
 eval 'use Encode ; 1' or              # 文字コード変換、ない場合はエラー表示
     die "ERROR : cannot load Encode\n" ;
 use YAML::XS        'LoadFile';
@@ -64,7 +62,7 @@ sub get_followers_list{
 }
 =cut
 # ====================
-sub get_followers_list {  # Usage: @ids = get_followers($screen_name) ;
+sub get_followers_list {  # Usage:  get_followers($screen_name) ;
     my %arg ;
     $arg{'screen_name'} = $_[0] ;  # API仕様として空白の場合は自分のフォロワー取得になるので注意
     if ($debug == 1) { print " arg ".  $arg{'screen_name'} .' $_0 '. $_[0] ." --\n" ; }
@@ -94,7 +92,6 @@ sub get_followers_list {  # Usage: @ids = get_followers($screen_name) ;
         TMP->autoflush(1);
         while (my @ids_100 = splice(@l_ids,0,100)){
           wait_for_rate_limit('lookup_users');
-          # wait_for_rate_limit('friendships');
           my @users = users_lookup(@ids_100) ;
           $" = "\r\n" ;
           print TMP "@users\r\n" ;
@@ -267,7 +264,7 @@ sub wait_for_rate_limit {
     
     while ( $limit->{'remaining'} <= 2 ) {
         if ($debug ==1) {
-            print STDERR " -- API limit reached in wait_for_limit, waiting for ". POSIX::strftime( "%Y/%m/%d %H:%M:%S", ( $time - time )) . " seconds -- type is : ". $type. "\n" ; 
+            print STDERR " -- API limit reached in wait_for_limit, waiting for ". ( $time - time ) . " seconds -- type is : ". $type. "\n" ; 
             print "----------------------- At until Loop\n";
         }
         sleep ( $time - time + 1 );
