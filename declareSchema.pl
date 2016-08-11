@@ -28,13 +28,14 @@ print OUT Teng::Schema::Dumper->dump(
     inflate   => +{ rate_limit => q|
             use Date::Parse;
             use DateTime;
+            use POSIX;
         inflate qr/.+_reset/ => sub {
             my ($col_value) = @_;
             return str2time($col_value,'JST');
         };
         deflate qr/.+_reset/ => sub {
             my ($col_value) = @_;
-            return  localtime( $col_value);
+            return  strftime("%Y-%m-%d %H:%M:%S" , localtime( $col_value));
         };
     |,},
 ), "\n";
