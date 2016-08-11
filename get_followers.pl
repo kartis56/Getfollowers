@@ -27,7 +27,7 @@ use YAML::XS        'LoadFile';
 use Scalar::Util 'blessed';
 use IO::Handle;            #オートフラッシュ
 use POSIX;
-use DBIx::QueryLog;
+#use DBIx::QueryLog;
 use Date::Parse;           #str2time
 
 use lib './lib';
@@ -96,28 +96,26 @@ sub get_followers_list {  # Usage:  get_followers($screen_name) ;
 
     eval {
 
-    while ($arg{'cursor'}){ # 一度に5000までしか取得できないのでcursorを書き換えながら取得を繰り返す
+    while ($arg{'cursor'}) { # 一度に5000までしか取得できないのでcursorを書き換えながら取得を繰り返す
 
-        if ($debug == 1) { print " -- getfollowers call  --\n" ; }
-        wait_for_rate_limit('followers_ids');
+      if ($debug == 1) { print " -- getfollowers call  --\n" ; }
+      wait_for_rate_limit('followers_ids');
 
-        $followers_ref = $twit->followers_ids({%arg});
-            
-        $ids_ref = $followers_ref->{'ids'} ;
+      $followers_ref = $twit->followers_ids({%arg});
+          
+      @l_ids = @{ $followers_ref->{'ids'} };
+      $arg{'cursor'} = $followers_ref->{'next_cursor'} ;
+      print STDERR "Fetched: ids=", scalar @l_ids, ",next_cursor=$arg{'cursor'}\n" ;
 
-        @l_ids = @{$ids_ref} ;
-        $arg{'cursor'} = $followers_ref->{'next_cursor'} ;
-        print STDERR "Fetched: ids=", scalar @$ids_ref, ",next_cursor=$arg{'cursor'}\n" ;
-
-        # ユーザリストに変換
-        # 100件ごとに分割して取得
-        TMP->autoflush(1);
-        while (my @ids_100 = splice(@l_ids,0,100)){
-          wait_for_rate_limit('users_lookup');
-          my @users = users_lookup(@ids_100) ;
-          $" = "\r\n" ;
-          print TMP "@users\r\n" ;
-        }
+      # ユーザリストに変換
+      # 100件ごとに分割して取得
+      TMP->autoflush(1);
+      while (my @ids_100 = splice(@l_ids,0,100)){
+        wait_for_rate_limit('users_lookup');
+        my @users = users_lookup(@ids_100) ;
+        $" = "\r\n" ;
+        print TMP "@users\r\n" ;
+      }
 
     }
 
@@ -144,32 +142,32 @@ sub users_lookup {  # usage: @userinfo = users_lookup(@user_id_list)
 
     if ($debug == 1) { print " -- lookup call  lookup users--\n" ; }
     eval {
-    $user_ref = $twit->lookup_users({ user_id => $user_id_list }) ;
+      $user_ref = $twit->lookup_users({ user_id => $user_id_list }) ;
     };
     
-        if (my $err = $@) { 
-                warn "\n when lookup_ids - HTTP Response Code: ", $err->code, "\n",
-                "\n - HTTP Message......: ", $err->message, "\n",
-                "\n - Twitter error.....: ", $err->error, "\n";
-                die $@ unless blessed $err && $err->isa('Net::Twitter::Lite::WithAPIv1_1::Error');
-        }
+      if (my $err = $@) { 
+              warn "\n when lookup_ids - HTTP Response Code: ", $err->code, "\n",
+              "\n - HTTP Message......: ", $err->message, "\n",
+              "\n - Twitter error.....: ", $err->error, "\n";
+              die $@ unless blessed $err && $err->isa('Net::Twitter::Lite::WithAPIv1_1::Error');
+      }
     
     if ($debug == 1) { print " -- lookup call  lookup friendships--\n" ; }
 
     eval {
-    $rel_ref = $twit->lookup_friendships({ user_id => $user_id_list }) ;
+      $rel_ref = $twit->lookup_friendships({ user_id => $user_id_list }) ;
     };
-        if (my $err = $@) { 
-                warn "\n when lookup_friendships - HTTP Response Code: ", $err->code, "\n",
-                "\n - HTTP Message......: ", $err->message, "\n",
-                "\n - Twitter error.....: ", $err->error, "\n";
-                die $@ unless blessed $err && $err->isa('Net::Twitter::Lite::WithAPIv1_1::Error');
-        }
+      if (my $err = $@) { 
+              warn "\n when lookup_friendships - HTTP Response Code: ", $err->code, "\n",
+              "\n - HTTP Message......: ", $err->message, "\n",
+              "\n - Twitter error.....: ", $err->error, "\n";
+              die $@ unless blessed $err && $err->isa('Net::Twitter::Lite::WithAPIv1_1::Error');
+      }
     my $i = 0;
     my @user_info ;
     my $ss;
 
-    $ss =  $rel_ref->[$i]->{'connections'};
+    $ss =  @{$rel_ref}[$i]->{'connections'};
     #print "connections =  @{$ss[0]}  \n";
     my $tmp =  join(",",  @{$ss});
     if( $debug ==1 ) {print "connections =  $tmp \n" ; }
@@ -307,7 +305,7 @@ sub wait_for_rate_limit {        #  wait_for_rate_limit( $type )
           print "----------------------- At until Loop\n";
       }
     print "wait rate_limit until -------" , POSIX::strftime( "%Y/%m/%d %H:%M:%S",localtime( $time )) , "\n";
-      sleep ( $sleep_time + 1 );
+    sleep ( $sleep_time + 1 );
     do `./get_rate_limit.pl`;                    #バックダッシュ (Shift+@)
     $row = $teng->single( 'rate_limit',{id => 1} );
     $time = $row->$l_reset;
