@@ -87,7 +87,7 @@ STDERR->autoflush(1);
      connect_info => [$connectionInfo, $userid, $passwd, +{ RaiseError => 1, mysql_use_result => 1 }, ],
      schema_class => 'MyApp::DB::Schema', ) or die "connect Error\n";
 
-  my $row = $teng->find_or_create ( 'rate_limit',{id => 1});
+  my $row = $teng->find_or_create ( 'rate_limit', {id => 1} );
   if ($debug == 1) { warn Dumper   $row->get_columns ; }
   
   $teng->update( 'rate_limit',
@@ -151,11 +151,11 @@ STDERR->autoflush(1);
     friends_list_reset => $m->{'resources'}->{'friends'}->{'/friends/list'}->{'reset'} ,
     friends_ids_limit => $m->{'resources'}->{'friends'}->{'/friends/ids'}->{'limit'} ,
     friends_ids_remain => $m->{'resources'}->{'friends'}->{'/friends/ids'}->{'remaining'} ,
-    friends_ids_reset => $m->{'resources'}->{'friends'}->{'/friends/ids'}->{'reset'} 
-
+    friends_ids_reset => $m->{'resources'}->{'friends'}->{'/friends/ids'}->{'reset'} ,
+  },
+  +{id => 1}
   
-  
-  })or die "update Error\n";
+  )or die "update Error\n";
 
 
 exit ;

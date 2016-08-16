@@ -63,7 +63,7 @@ my $twit = Net::Twitter::Lite::WithAPIv1_1->new(%creds);
      connect_info => [$connectionInfo, $userid, $passwd, +{ RaiseError => 1, mysql_use_result => 1 }, ],
      schema_class => 'MyApp::DB::Schema', ) or die "connect Error";
 
-my $wait_remain = 1;
+#my $wait_remain = 1;
 
 
 STDOUT->autoflush(1);
@@ -274,27 +274,31 @@ sub get_rate_limit {
 }
 
 =cut
-############################## ver 2016/08/10 use $l_limit = $type , "_limit"
-############################ APP不足に対応
+############################## ver 2016/08/15 use $l_limit = $type , "_limit"  and  print lastupdt
+############################ APP不足に対応済み
 sub wait_for_rate_limit {        #  wait_for_rate_limit( $type ) 
   my $type = shift;
   my $row = $teng->single( 'rate_limit', {id => 1} );
 
+  my $l_limit = "$type" . "_limit";
+  my $l_remain = "$type" . "_remain";
+  my $l_reset = "$type" . "_reset";
+  my $wait_remain = $row->$l_remain;
+  my $app_remain = $row->app_limit_remain;
+  my $time = $row->$l_reset || 0;
+
   my $old = str2time($row->lastupdt,'JST');
-  print "\$old ". localtime($old) ."\n";
+  print "rate_limit foward update time:  " . $row->lastupdt ."\n";
   
-  if ( ($old +900) <= time ) {                      #前回取得日時から15分経っているならrate_limitを再取得する
+  if (( ($old +900) <= time ) or ( $time <= time ) ) {        # 前回取得日時から15分経っている またはリセット時間が今より前ならrate_limitを再取得する
       do `./get_rate_limit.pl`;                    #バックダッシュ (Shift+@)
       $row = $teng->single( 'rate_limit', {id => 1} );
   }
   
-  my $l_limit = "$type" . "_limit";
-  my $l_remain = "$type" . "_remain";
-  my $l_reset = "$type" . "_reset";
-  
   $wait_remain = $row->$l_remain;
-  my $app_remain = $row->app_limit_remain;
-  my $time = $row->$l_reset || 0;
+  $app_remain = $row->app_limit_remain;
+  $time = $row->$l_reset || 0;
+  
   print "\$wait_remain  : $wait_remain \n";
   print "   \$app_remain  : $app_remain \n";
 
@@ -305,11 +309,12 @@ sub wait_for_rate_limit {        #  wait_for_rate_limit( $type )
           print "----------------------- At until Loop\n";
       }
     print "wait rate_limit until -------" , POSIX::strftime( "%Y/%m/%d %H:%M:%S",localtime( $time )) , "\n";
-    sleep ( $sleep_time + 1 );
+      sleep ( $sleep_time + 1 );
     do `./get_rate_limit.pl`;                    #バックダッシュ (Shift+@)
     $row = $teng->single( 'rate_limit',{id => 1} );
-    $time = $row->$l_reset;
     $wait_remain = $row->$l_remain;
+    $app_remain = $row->app_limit_remain;
+    $time = $row->$l_reset;
     $sleep_time = $time - time;
     
     if ( $sleep_time <= 0 ){        # resetが過去のことがある
@@ -322,7 +327,7 @@ sub wait_for_rate_limit {        #  wait_for_rate_limit( $type )
   }
   $wait_remain--;   # 使う前に減らしておく
   $app_remain--;
-  $teng->update( 'rate_limit', {$l_remain => $wait_remain , app_limit_remain  => $app_remain} );  #呼び出す度にDBからも減らす
+  $teng->update( 'rate_limit', {$l_remain => $wait_remain , app_limit_remain  => $app_remain}, +{id => 1} );  #呼び出す度にDBからも減らす
   if ( $debug == 1 ) {
     print STDERR "wait_for_rate_limit after Loop: ",  POSIX::strftime( "%Y/%m/%d %H:%M:%S",localtime( $time ) ) ,
                  "\n limit is : ", $row->users_lookup_remain ," type is : ", $type ,"\n";

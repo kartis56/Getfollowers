@@ -24,15 +24,6 @@ table {
 };
 
 table {
-    name 'Unknown';
-    pk ;
-    columns (
-        {name => 'screen_name', type => 12},
-        {name => 'lastupdt', type => 11},
-    );
-};
-
-table {
     name 'Whitelist';
     pk 'id';
     columns (
@@ -131,6 +122,16 @@ table {
             return  strftime("%Y-%m-%d %H:%M:%S" , localtime( $col_value));
         };
     };
+
+table {
+    name 'unknown';
+    pk ;
+    columns (
+        {name => 'id', type => 12},
+        {name => 'screen_name', type => 12},
+        {name => 'lastupdt', type => 11},
+    );
+};
 
 table {
     name 'user_ids';
