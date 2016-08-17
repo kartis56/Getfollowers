@@ -124,7 +124,7 @@ table {
     };
 
 table {
-    name 'unknown';
+    name 'Unknown';
     pk ;
     columns (
         {name => 'id', type => 12},
