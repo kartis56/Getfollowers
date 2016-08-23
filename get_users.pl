@@ -56,7 +56,7 @@ STDERR->autoflush(1);
      
 
 my $row;
-my $wait_remain = 1;
+
         eval{
     do `./get_rate_limit.pl`;    # 初回 rate_limit取得
         };
@@ -159,44 +159,64 @@ sub get_users {   #### lookup_userの制限により100件まで
 
 
 
-############################## ver 2016/08/01 use strftime
-############################ APP不足には未対応
-sub wait_for_rate_limit {
+############################## ver 2016/08/15 use $l_limit = $type , "_limit"  and  print lastupdt
+############################ APP不足に対応済み
+sub wait_for_rate_limit {        #  wait_for_rate_limit( $type ) 
   my $type = shift;
   my $row = $teng->single( 'rate_limit', {id => 1} );
-  if ( $type =~ /users/ ) {
-    $wait_remain = $row->users_lookup_remain;
-    my $time = $row->users_lookup_reset || 0;
-    while ( $wait_remain <= 2 ) {
-      my $sleep_time = $time - time;
-      if ($debug ==1) {
-        print STDERR " -- API limit reached in wait_for_limit, waiting for $sleep_time seconds -- type is : $type \n" ; 
-        print "----------------------- At until Loop\n";
-      }
-      print "wait rate_limit until -------" , POSIX::strftime( "%Y/%m/%d %H:%M:%S",localtime( $time )) , "\n";
-      sleep ( $sleep_time + 1 );
-      do `./get_rate_limit.pl`;                    #バックダッシュ (Shift+@)
-      $row = $teng->single( 'rate_limit',{id => 1} );
-      $time = $row->users_lookup_reset;
-      $wait_remain = $row->users_lookup_remain;
-      $sleep_time = $time - time;
-      if ( $sleep_time <= 0 ){        # resetが過去のことがある
-         $time = time + 60; }
-         if ( $debug == 1) {
-           print STDERR "wait_for_rate_limit next Loop: ". POSIX::strftime( "%Y/%m/%d %H:%M:%S",localtime( $time ))
-                       ."\n limit is : ". $wait_remain ." type is : ". $type . "\n"; 
-         }
-     }
-     $wait_remain--;   # 使う前に減らしておく
-     $teng->update( 'rate_limit', {users_lookup_remain => $wait_remain } );  #呼び出す度にDBからも減らす
 
-     if ( $debug == 1 ) {
-       print STDERR "wait_for_rate_limit after Loop: ",  POSIX::strftime( "%Y/%m/%d %H:%M:%S",localtime( $time ) ) ,
-                    "\n limit is : ", $row->users_lookup_remain ," type is : ", $type ,"\n";
-     }
-    
-  } else {
-    print STDERR "type ERROR at wait_for_rate_limit \n";
+  my $l_limit = "$type" . "_limit";
+  my $l_remain = "$type" . "_remain";
+  my $l_reset = "$type" . "_reset";
+  my $wait_remain = $row->$l_remain;
+  my $app_remain = $row->app_limit_remain;
+  my $time = $row->$l_reset || 0;
+
+  my $old = str2time($row->lastupdt,'JST');
+  print "rate_limit foward update time:  " . $row->lastupdt ."\n";
+  
+  if (( ($old +900) <= time ) or ( $time <= time ) ) {        # 前回取得日時から15分経っている またはリセット時間が今より前ならrate_limitを再取得する
+      do `./get_rate_limit.pl`;                    #バックダッシュ (Shift+@)
+      $row = $teng->single( 'rate_limit', {id => 1} );
   }
+  
+  $wait_remain = $row->$l_remain;
+  $app_remain = $row->app_limit_remain;
+  $time = $row->$l_reset || 0;
+  
+  print "\$wait_remain  : $wait_remain \n";
+  print "   \$app_remain  : $app_remain \n";
+
+  while ( $app_remain <= 2 or $wait_remain <= 2 ) {   #app_remain か typeのremain が残り少ないなら待機
+    my $sleep_time = $time - time;
+      if ($debug ==1) {
+          print STDERR " -- API limit reached in wait_for_limit, waiting for $sleep_time seconds -- type is : $type \n" ; 
+          print "----------------------- At until Loop\n";
+      }
+    print "wait rate_limit until -------" , POSIX::strftime( "%Y/%m/%d %H:%M:%S",localtime( $time )) , "\n";
+      sleep ( $sleep_time + 1 );
+    do `./get_rate_limit.pl`;                    #バックダッシュ (Shift+@)
+    $row = $teng->single( 'rate_limit',{id => 1} );
+    $wait_remain = $row->$l_remain;
+    $app_remain = $row->app_limit_remain;
+    $time = $row->$l_reset;
+    $sleep_time = $time - time;
+    
+    if ( $sleep_time <= 0 ){        # resetが過去のことがある
+       $time = time + 60;
+    }
+    if ( $debug == 1) {
+      print STDERR "wait_for_rate_limit next Loop: ". POSIX::strftime( "%Y/%m/%d %H:%M:%S",localtime( $time ))
+                  ."\n limit is : ". $wait_remain ." type is : ". $type . "\n"; 
+    }
+  }
+  $wait_remain--;   # 使う前に減らしておく
+  $app_remain--;
+  $teng->update( 'rate_limit', {$l_remain => $wait_remain , app_limit_remain  => $app_remain}, +{id => 1} );  #呼び出す度にDBからも減らす
+  if ( $debug == 1 ) {
+    print STDERR "wait_for_rate_limit after Loop: ",  POSIX::strftime( "%Y/%m/%d %H:%M:%S",localtime( $time ) ) ,
+                 "\n limit is : ", $row->users_lookup_remain ," type is : ", $type ,"\n";
+  }
+
 
 }

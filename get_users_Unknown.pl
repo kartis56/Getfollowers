@@ -64,7 +64,7 @@ my $row;
 
 
 #取りたい対象の件数取得
-my $limit = "";                                          # 抽出件数が多すぎる場合は limit 10000 などで指定する
+my $limit = "limit 720000";                                          # 抽出件数が多すぎる場合は limit 10000 などで指定する
 if ( $debug >= 1 ) { $limit = "limit 10" }; 
 my @sql = q/ select screen_name from Unknown where id is null group by screen_name / . " $limit" ." ;" ;
 
