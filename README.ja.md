@@ -7,8 +7,8 @@
 まともにやるにはAPIを使うしかなくなった
 これら手順を半ば機械的に行うことを目的としてプログラム群を作成する。
 
-大本の入力はspam.txtとする。手作業での手順は、spam.txtのユーザのフォロワーを取得し、その中から連番・botなどをR4sしてspam.txtへ追記していた。
-また、相互フォローなどのbotタグからユーザ（screen_name）を抽出・ソートマージしてspam.txtへ追記していた
+大本の入力はspamer.txtとする。手作業での手順は、spamer.txtのユーザのフォロワーを取得し、その中から連番・botなどをR4sしてspamer.txtへ追記していた。
+また、相互フォローなどのbotタグからユーザ（screen_name）を抽出・ソートマージしてspamer.txtへ追記していた
 R4sする際は外部ツールを使っていたが、そのツールでは、自分がフォローしているアカウントは自動的に除外してR4sできた。
 
 ＜Todo＞
@@ -20,16 +20,16 @@ R4sする際は外部ツールを使っていたが、そのツールでは、�
     （テーブル作成済み、テキストからロードするsql作成済み）
  1.2 テキストロードしたUnknownにidを付ける (usersのscreen_nameと同じならupdateするsql 作成済み)
      (完成・完了 テキストからロードしたものに対してidを取得してupdateする。id取得できなかった物は削除  get_users_Unknow.pl ）
- 1.3 blockedテーブルとuserテーブルができたら、APIより先にそっちでブロック済みかチェックして、取得したidをひたすら格納する（なるべくlookup_userしない）
-    （未実装）
+ 1.3 blockedテーブルとuserテーブルができたら、APIより先にそっちでブロック済みかチェックして、取得したidをひたすらUnknownへ格納する（なるべくlookup_userしない）
+    （未実装  get_follwers_list.pl）
 
 
 ２．ブロック済みかどうかはuser情報取得しないとならないが、API限界が少ないのでブロック済みはキャッシュしておきたい。このため、ブロック済みidを一括取得しておく
-  （完了 blockedテーブル作成済み、ブロック済み取り込み済み）
+  （完了 blockedテーブル作成済み、ブロック済み取り込み済み  get_blocked.pl）
 
  2.1 単発でブロックしたものをテキストからblockedテーブルに取り込みたい（userテーブルも更新・追加する）
     APIの blocked_listを使って100件取得ごとにblockedやuserテーブルへ追加する。追加できないならテーブルへの処理済みなのでそこで終了
-  （未作成）
+  （未着手  get_blocked_list.pl）
 
 
 ３．ブロック済みテーブルをつかってuser情報を取得してuserテーブルに格納する。格納済みはdoneをtrueにする。取得できなかったものはブロック済みから削除
@@ -39,9 +39,13 @@ R4sする際は外部ツールを使っていたが、そのツールでは、�
    (完了 add_white_list.pl 実行済み ただしファイル入力）
 
 ５．UnknownテーブルからBlockedにない、登録回数の多順でリスト化してR4S用テキストを作る（出力後削除）[Unknown2R4s]
-  （一応完了 report_Spam.pl）4R4sがなければインサート、あればR4sしてUnknownを削除、Blockedへ追加。user自体が無いならuser_idsをdeletedへ更新、Unknown,Blockedを削除
+  （一応完了 report_Spam.pl）4R4sがなければインサート、あればR4sしてBlockedへ追加、Unknownを削除。user自体が無いならuser_idsをdeletedへ更新、Unknown,Blockedを削除
 
  5.1 R4S用リスト(R4S.txt)を使ってR4Sをする。かつ、１のフォロワー取得リストへ追加する [R4s2follower]
+   （一応完了  report_Spambytext.pl） <<R4S.txt から削除はしないので手作業になる>>
+    Blockedへ追加、Unknownを削除。user自体が無いならuser_idsをdeletedへ更新、Unknown,Blockedを削除
+ 
+ 作業後はspamer.txtへ追加する
 
 ６．rate_limitを確保しておいて、上記コードでループの度に習得しないで済むようにする
   （完了 get_rate_limit.pl）
@@ -50,3 +54,14 @@ R4sする際は外部ツールを使っていたが、そのツールでは、�
 ７．Twitterのリストからuserを取得してBlockedにないユーザをUnknownに格納する（まずは１と同じ動作とし、いずれBlockedを参照するよう修正する）
 
 
+
+
+最終的に動かすのは
+手作業で逐次
+report_Spambytext.pl   
+
+バッチなどでいつも
+report_Spam.pl      get_follwers_list.pl
+
+アカウント削除などを同期するために不定期に実行する必要がある
+get_blocked_list.pl
