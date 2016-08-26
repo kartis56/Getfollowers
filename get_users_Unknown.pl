@@ -66,7 +66,7 @@ my $row;
 #Žæ‚è‚½‚¢‘ÎÛ‚ÌŒ”Žæ“¾
 my $limit = "limit 720000";                                          # ’ŠoŒ”‚ª‘½‚·‚¬‚éê‡‚Í limit 10000 ‚È‚Ç‚ÅŽw’è‚·‚é
 if ( $debug >= 1 ) { $limit = "limit 10" }; 
-my @sql = q/ select screen_name from Unknown where id is null group by screen_name / . " $limit" ." ;" ;
+my @sql = q/ select screen_name from Unknown where id ='0' group by screen_name / . " $limit" ." ;" ;
 
 my $iter = $teng->search_by_sql( @sql ,
                                 [], 'Unknown' ) 

@@ -87,11 +87,12 @@ my $rowall = $iter2->all;
 my $diff = 2;
 if ( $debug == 1) {   print "count row : ",  scalar(@$rowall) ,"\n"; }
 
+my $count = 17;
 while ( scalar (@$rowall) == 0 ) {              # 4R4sが空なら、何件かできるまで作成する
-  my $count = 25 - $diff;
-  if ( $count <= 8 ) { print "Too less counter "; die;  }
-  my @sql2 = "insert 4R4s(screen_name,id,count) select screen_name,id,count(id) as cnt from Unknown where id is not null group by id " . $limit ." ;" ;
-                                                                          # having cnt   # having cnt >= $count ;", )
+  $count -= $diff;
+  if ( $count <= 8 ) { print "Too less counter $count  "; die;  }
+  my @sql2 = "insert 4R4s(screen_name,id,count) select screen_name,id,count(id) as cnt from Unknown  group by id having cnt >= $count order by screen_name  ;" ;
+                                                                          # " . $limit ." having cnt   # having cnt >= $count ;", )  order by cnt DESC
   $teng->do( @sql2, ) 
          or die  "insert error to 4R4s  \n\n\n\n";
 
@@ -109,22 +110,44 @@ foreach $row ( @$rowall ) {
   my $tmp;
   
   if ( $debug >= 1) {
-   print "Found a row: screen_name =   ", $l_name , "       id =       ", $l_id , " \n"; 
+    print "Found a row: screen_name =   ", $l_name , "       id =       ", $l_id , " \n"; 
   }
 
   wait_for_rate_limit( 'users_r4s' );
 
+  my $err ="";
   my $user_ref;
       eval{
   $user_ref = $twit->report_spam( { 'user_id' => $l_id  } ) ;
       };
-  if ( my $err = $@ ) { 
-     if ( $err->code != 404 ) {
-          warn "\n when report_spam - HTTP Response Code: ", $err->code, "\n",
-               "\n - HTTP Message......: ", $err->message, "\n",
-               "\n - Twitter error.....: ", $err->error, "\n";
-       die $@ unless blessed $err && $err->isa('Net::Twitter::Lite::WithAPIv1_1::Error');   #先にwarnしないとwarnせずに死ぬ
-     } else {                          # userなし
+  $err = $@;
+  print "TMPERROR    "   . Dumper $err;
+  
+  if ( ($err )  and ($err->code == 404) ) {                          # userなし
+    if ( $debug == 1) {  print "ERROR CODE: $err->code \n"; }
+       print  "                                                 No users in Twitter \n";
+    $row->delete();
+    $tmp = $teng->delete( 'Blocked', { id => $l_id } );
+    if ( $debug == 1) {  print "Delete blocked : $tmp \n"; }
+    $tmp = $teng->update( 'user_ids', { deleted => 1 },  { id => $l_id } );
+    if ( $debug == 1) {  print "Update user_ids : $tmp \n"; }
+    $tmp = $teng->delete( 'Unknown', { id => $l_id } );
+    if ( $debug == 1) {  print "Delete blocked : $tmp \n"; }
+    next; 
+  }
+  while ( $err  ) { 
+       
+     if ( $err->code == 403 ){
+       if ( $debug == 1) {  print "ERROR CODE: $err->code \n"; }
+       sleep(901);                                       # 本当は50件/hなので、15件/15分 = 60件/hで動かそうとすると403エラーが来る  この時は待つしか無い
+           eval{
+       $user_ref = $twit->report_spam( { 'user_id' => $l_id  } ) ;
+           };
+       $err = $@;
+
+     } elsif  ($err->code == 404)  {                          # userなし ループ内周回時チェック
+       if ( $debug == 1) {  print "ERROR CODE: $err->code \n"; }
+          print  "                                                 No users in Twitter \n";
        $row->delete();
        $tmp = $teng->delete( 'Blocked', { id => $l_id } );
        if ( $debug == 1) {  print "Delete blocked : $tmp \n"; }
@@ -133,6 +156,11 @@ foreach $row ( @$rowall ) {
        $tmp = $teng->delete( 'Unknown', { id => $l_id } );
        if ( $debug == 1) {  print "Delete blocked : $tmp \n"; }
        next; 
+     } else { 
+          warn "\n when report_spam - HTTP Response Code: ", $err->code, "\n",
+               "\n - HTTP Message......: ", $err->message, "\n",
+               "\n - Twitter error.....: ", $err->error, "\n";
+       die $@ unless blessed $err && $err->isa('Net::Twitter::Lite::WithAPIv1_1::Error');   #先にwarnしないとwarnせずに死ぬ
      }
   }
 
@@ -142,7 +170,7 @@ foreach $row ( @$rowall ) {
   $tmp = $teng->delete( 'Unknown', { id => $l_id } );
   if ( $debug == 1) {  print "Delete blocked : $tmp \n"; }
 
-  $row->delete();
+  $tmp = $teng->delete( '4r4s', { id => $l_id } );
   print OUT2 $l_name ,"\r\n";
   
 }

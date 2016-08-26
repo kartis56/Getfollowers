@@ -75,14 +75,6 @@ while (<IN>) {
 close TMP;
 exit ;
 
-
-=pod
-sub get_followers_list{
-    # IDリスト取得
-    my @ids = get_followers($_) ;
-
-}
-=cut
 # ====================
 sub get_followers_list {  # Usage:  get_followers($screen_name) ;
     my %arg ;
@@ -175,13 +167,6 @@ sub users_lookup {  # usage: @userinfo = users_lookup(@user_id_list)
     foreach  (@$user_ref ) {
 
         my $screen_name       = $_->{'screen_name'}       // '' ;
-=pod
-        my $name              = $_->{'name'}              // '' ;
-        my $id              = $_->{'id'}              // '' ;
-        my $description       = $_->{'description'}       // '' ;
-        my $following          = $_->{'following'}        // '' ;
-        my $followers_count          = $_->{'followers_count'}        // '' ;
-=cut
         my $protected          = $_->{'protected'}        // '' ;  #非公開アカウント
         if ( $protected == 1 ) { $i++; next; }
     
@@ -208,72 +193,6 @@ sub users_lookup {  # usage: @userinfo = users_lookup(@user_id_list)
     return @user_info ;
 }
 
-=pod
-#https://github.com/freebsdgirl/ggautoblocker/blob/master/ggautoblocker.pl  よりコピー改変
-# ====================
-sub get_rate_limit {
-    my $type = shift;
-    my $m ;
-    
-    eval{
-        $m = $twit->rate_limit_status;
-        print "App remaining ,". $m->{'resources'}->{'application'}->{'/application/rate_limit_status'}->{'remaining'} ."  \n";
-    };
-
-    if ( my $err = $@ ) {
-
-        if ( $m->{'resources'}->{'application'}->{'/application/rate_limit_status'}->{'remaining'} == 0 ) {
-            if ($debug ==1) {
-                print "Zero remaining ". $m->{'resources'}->{'application'}->{'/application/rate_limit_status'}->{'remaining'} ."\n"; 
-                print " -- API limit reached, waiting for ". ( $m->{'resources'}->{'application'}->{'/application/rate_limit_status'}->{'reset'} - time ) . " seconds --\n" ;
-            }
-            
-            sleep ( $m->{'resources'}->{'application'}->{'/application/rate_limit_status'}->{'reset'} - time + 1 );
-        }
- 
-        warn "when get_rate_limit  - HTTP Response Code: ", $err->code, "\n",
-        "\n - HTTP Message......: ", $err->message, "\n",
-        "\n - Twitter error.....: ", $err->error, "\n";
-        
-    }  # end $err 
-        
-
-    if ( $type =~ /followers/ ) {
-        print "followers remaining ,". $m->{'resources'}->{'followers'}->{'/followers/ids'}->{'remaining'} ."  \n";
-        return { 
-            type => $type,
-            remaining => $m->{'resources'}->{'followers'}->{'/followers/ids'}->{'remaining'}, 
-            reset => $m->{'resources'}->{'followers'}->{'/followers/ids'}->{'reset'} 
-        };
-    } else {
-    #if ( $type =~ /lookup_users/ ) {
-        my $user_look_rem;
-        my $friend_look_rem;
-        
-        $user_look_rem = $m->{'resources'}->{'users'}->{'/users/lookup'}->{'remaining'};
-        $friend_look_rem =  $m->{'resources'}->{'friendships'}->{'/friendships/lookup'}->{'remaining'};
-        
-        print "lookup_users remaining ,". $user_look_rem ."  \n";
-        print "follwers_ids remaining ,". $friend_look_rem ."  \n";
-
-        if( $user_look_rem  >= $friend_look_rem  ) {
-            return {
-                type => $type, 
-                remaining => $friend_look_rem,
-                reset => $m->{'resources'}->{'friendships'}->{'/friendships/lookup'}->{'reset'}
-            };
-        } else {
-            return {
-                type => $type, 
-                remaining => $user_look_rem,
-                reset => $m->{'resources'}->{'users'}->{'/users/lookup'}->{'reset'}
-            };
-        }
-    }
-
-}
-
-=cut
 ############################## ver 2016/08/15 use $l_limit = $type , "_limit"  and  print lastupdt
 ############################ APP不足に対応済み
 sub wait_for_rate_limit {        #  wait_for_rate_limit( $type ) 

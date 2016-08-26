@@ -3,11 +3,11 @@ use strict;
 use warnings;
 use Teng::Schema::Declare;
 table {
-    name '4R4s';
+    name '4r4s';
     pk 'screen_name';
     columns (
         {name => 'screen_name', type => 12},
-        {name => 'id', type => 12},
+        {name => 'id', type => 4},
         {name => 'count', type => 4},
         {name => 'lastupdt', type => 11},
     );
@@ -17,7 +17,7 @@ table {
     name 'Blocked';
     pk 'id';
     columns (
-        {name => 'id', type => 12},
+        {name => 'id', type => 4},
         {name => 'done', type => 4},
         {name => 'lastupdt', type => 11},
     );
@@ -27,7 +27,7 @@ table {
     name 'Whitelist';
     pk 'id';
     columns (
-        {name => 'id', type => 12},
+        {name => 'id', type => 4},
         {name => 'screen_name', type => 12},
         {name => 'lastupdt', type => 11},
     );
@@ -124,10 +124,10 @@ table {
     };
 
 table {
-    name 'Unknown';
+    name 'unknown';
     pk ;
     columns (
-        {name => 'id', type => 12},
+        {name => 'id', type => 4},
         {name => 'screen_name', type => 12},
         {name => 'lastupdt', type => 11},
     );
@@ -137,7 +137,7 @@ table {
     name 'user_ids';
     pk 'id';
     columns (
-        {name => 'id', type => 12},
+        {name => 'id', type => 4},
         {name => 'screen_name', type => 12},
         {name => 'protected', type => 4},
         {name => 'followers_cnt', type => 4},

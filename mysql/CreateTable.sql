@@ -7,29 +7,29 @@ drop table if exists  rate_limit;
 
 
 create table user_ids (
-    id varchar(19) primary key, screen_name varchar(16), protected TINYINT default 0,
+    id bigint(20) primary key, screen_name varchar(16) default '0', protected TINYINT default 0,
     followers_cnt int default 0, friends_cnt int default 0, deleted TINYINT default 0, 
     lastupdt DATETIME default CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP, 
     INDEX idx_name(screen_name), INDEX idx_protect(protected),  INDEX idx_delete(deleted) ) ;
                                
 create table Blocked (
-    id varchar(19) primary key, done TINYINT default 0,
+    id bigint(20) primary key, done TINYINT default 0,
     lastupdt DATETIME default CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
     ) ;
 
 create table Whitelist (
-    id varchar(19) primary key, screen_name varchar(16), 
+    id bigint(20) primary key, screen_name varchar(16) default '0', 
     lastupdt DATETIME default CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     index white_idx(screen_name) ) ;
 
 create table 4R4s (
-    screen_name varchar(16) primary key, id varchar(19) default 0, count int default 0, 
+    screen_name varchar(16) primary key, id bigint(20) default 0, count int default 0, 
     lastupdt DATETIME default CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     index idx_r4s(screen_name) ) ;
 
 
 create table Unknown (
-    id varchar(19), screen_name varchar(16),
+    id bigint(20) default 0, screen_name varchar(16) default '0',
     lastupdt DATETIME default CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     index idx_unk(screen_name), idx_unkid(id) ) ;
 
