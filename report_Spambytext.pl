@@ -33,7 +33,7 @@ use MyApp::DB::Schema;
 use DateTime;
 use SQL::Maker::Condition;
 
-my $debug = 1;  # 0: release,  1:detailed debug,  2:less output debug
+my $debug = 0;  # 0: release,  1:detailed debug,  2:less output debug
 my $conf         = LoadFile( "../keys.txt" );
 my %creds        = %{$conf->{creds}};
 my $twit = Net::Twitter::Lite::WithAPIv1_1->new(%creds);
