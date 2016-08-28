@@ -19,7 +19,7 @@ R4sする際は外部ツールを使っていたが、そのツールでは、�
  1.1 Unknownテーブルを作る
     （テーブル作成済み、テキストからロードするsql作成済み）
  1.2 テキストロードしたUnknownにidを付ける (usersのscreen_nameと同じならupdateするsql 作成済み)
-     (完成・完了 テキストからロードしたものに対してidを取得してupdateする。id取得できなかった物は削除  get_users_Unknow.pl ）
+     (完成・完了 テキストからロードしたものに対してidを取得してupdateする。id取得できなかった物は削除  get_users_Unknown.pl ）
  1.3 blockedテーブルとuserテーブルができたら、APIより先にそっちでブロック済みかチェックして、取得したidをひたすらUnknownへ格納する（なるべくlookup_userしない）
      まずテーブル見ないでAPI使ってチェックして、Unknownとuser_idsへ格納するだけにする。userのチェックロジックが面倒なため
     （未実装  get_follwers_list.pl）

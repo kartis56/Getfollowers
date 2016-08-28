@@ -25,14 +25,15 @@ use Scalar::Util 'blessed';
 use IO::Handle;            #オートフラッシュ
 use POSIX;
 use Date::Parse;           #str2time
-#if ($debug >= 1) {  use DBIx::QueryLog;   }    #デバッグ時はクエリーログを出す
+#use DBIx::QueryLog;      #デバッグ時はクエリーログを出す
 
 use lib './lib';
 use MyAPP::DB;
 use MyApp::DB::Schema;
 use DateTime;
+use SQL::Maker::Condition;
 
-my $debug = 0;  # 0: release,  1:detailed debug,  2:less output debug
+my $debug = 1;  # 0: release,  1:detailed debug,  2:less output debug
 my $conf         = LoadFile( "../keys.txt" );
 my %creds        = %{$conf->{creds}};
 my $twit = Net::Twitter::Lite::WithAPIv1_1->new(%creds);
@@ -128,8 +129,22 @@ foreach $row ( @rowall ) {
      }
   }
 
-  $tmp = $teng->single( 'user_ids',  { screen_name => $l_name } );
-  if ( not defined($tmp) ) {   #user_idsがないなら取得
+  $l_id = $user_ref->{'id'};                          # R4Sの結果としてidが取れる
+
+=pod    #動かない
+  my $sql_maker = $teng->sql_builder();        #{ '-or', screen_name => $l_name , 'id' => $l_id }
+  my $cond1 = $sql_maker->new_condition();
+  my $cond2 = $sql_maker->new_condition();
+
+  $cond1->add( 'screen_name' => $l_name );
+  $cond1 |=     $cond2->add( 'id' => $l_id );
+  print  Dumper $cond1 ."\n "  ;
+  $tmp = $teng->single( 'user_ids', $cond1 );    #  {error}
+=cut
+
+  $tmp = $teng->search_named( 'Select * from user_ids where screen_name = :l_name or id = :l_id ;',
+                                       +{ 'l_name' => $l_name , 'l_id' => $l_id });             #  name or id 一致ならuser_idsがある
+ if ( not defined($tmp) ) {   #user_idsがないなら取得
     my $user_ref;
     wait_for_rate_limit( 'users_lookup' );
         eval{
@@ -156,9 +171,20 @@ foreach $row ( @rowall ) {
 
         $l_id = $ref->{'id'};
     }
-  } else {
-    if ( $debug == 1) {  print "user_ids : ". $tmp->id .  " \n"; }
-    $l_id = $tmp->id;
+  } else {                                 # user_ids があるならupdateする
+    my @all = $tmp->all;
+    if ( $debug == 1) {  print "user_ids : ". $l_id .  " \n"; }
+        $teng->update( 'user_ids' ,
+          +{
+                     'screen_name'     => $user_ref->{'screen_name'},
+                     'protected'       => $user_ref->{'protected'},
+                     'followers_cnt'   => $user_ref->{'followers_count'},
+                     'friends_cnt'     => $user_ref->{'friends_count'} 
+          }, 
+          { 'id'              => $l_id, }
+        );
+ #       print Dumper $teng;
+#    if ( $debug == 1) {  print "sql : ". $teng->{'sql'} .  " \n"; }
   }
 
 
