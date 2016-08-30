@@ -206,7 +206,7 @@ sub wait_for_rate_limit {        #  wait_for_rate_limit( $type )
   $app_remain = $row->app_limit_remain;
   $time = $row->$l_reset || 0;
   
-  print "\$wait_remain  : $wait_remain \n";
+  print "\$wait_remain  : $wait_remain      Type:  $type\n";
   print "   \$app_remain  : $app_remain \n";
 
   while ( $app_remain <= 2 or $wait_remain <= 2 ) {   #app_remain ‚© type‚Ìremain ‚ªŽc‚è­‚È‚¢‚È‚ç‘Ò‹@

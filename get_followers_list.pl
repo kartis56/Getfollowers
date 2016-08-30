@@ -5,7 +5,7 @@
 # Usage:  ./get_followers_list.pl 
 #
 # spamer.txtで指定したユーザ(screen_name)一覧の、自分がブロック中以外のフォロワー一覧を取得する
-# 出力結果は output.txt
+# 出力結果は Unknown(DB)
 # 
 #// cygwin　でperl -MCPAN -e shell
 # cpan install Encode  Net::Twitter::Lite YAML::XS Scalar::Util IO::Handle Data::Dumper
@@ -41,6 +41,8 @@ use DateTime;
 open IN, '<spamer.txt' or die "Error : file can't open spamer.txt\n";
 
 
+
+my $check_block = 0;                              #ブロック済みは処理しないなら 1 ブロック済みかどうか関係なく取得するなら 0
 
 my $debug = 0;
 my $conf         = LoadFile( "../keys.txt" );
@@ -82,6 +84,8 @@ sub get_followers_list {  # Usage:  get_followers_list($screen_name) ;
     my %arg ;
     $arg{'screen_name'} = $_[0] ;  # API仕様として空白の場合は自分のフォロワー取得になるので注意
     if ($debug == 1) { print " arg ".  $arg{'screen_name'} .' $_0 '. $_[0] ." --\n" ; }
+    
+    if ( $arg{'screen_name'} == "\r\n" ) { exit; }   #空なら終了
     
     $arg{'cursor'} = -1 ;  # 1ページ目は -1 を指定
     my @l_ids ;
@@ -126,10 +130,12 @@ sub get_followers_list {  # Usage:  get_followers_list($screen_name) ;
         #TMP->autoflush(1);
         while (my @ids_100 = splice(@l_ids,0,100)){
           wait_for_rate_limit('users_lookup');
-          wait_for_rate_limit('friend_lookup');
+
+          if ($check_block == 1) {
+            wait_for_rate_limit('friend_lookup');
+          }
           my @unk = users_lookup(@ids_100) ;
         
-  #(予定）一度全部insertして select * from unknown left join user_ids on unknown.id = user_ids.id  where unknown.id is not null; でlookup_userを回す
           if ( $debug == 1 ) {    print Dumper @unk; }
           $teng->bulk_insert( 'unknown' , \@unk ) ;
           
@@ -166,15 +172,17 @@ sub users_lookup {  # usage: @userinfo = users_lookup(@user_id_list)
     
     if ($debug == 1) { print " -- lookup call  lookup friendships--\n" ; }
 
-    eval {
-    $rel_ref = $twit->lookup_friendships({ user_id => $user_id_list }) ;
-    };
-        if (my $err = $@) { 
-                warn "\n when lookup_friendships - HTTP Response Code: ", $err->code, "\n",
-                "\n - HTTP Message......: ", $err->message, "\n",
-                "\n - Twitter error.....: ", $err->error, "\n";
-                die $@ unless blessed $err && $err->isa('Net::Twitter::Lite::WithAPIv1_1::Error');
-        }
+    if ($check_block == 1) {
+      eval {
+      $rel_ref = $twit->lookup_friendships({ user_id => $user_id_list }) ;
+      };
+          if (my $err = $@) { 
+                  warn "\n when lookup_friendships - HTTP Response Code: ", $err->code, "\n",
+                  "\n - HTTP Message......: ", $err->message, "\n",
+                  "\n - Twitter error.....: ", $err->error, "\n";
+                  die $@ unless blessed $err && $err->isa('Net::Twitter::Lite::WithAPIv1_1::Error');
+          }
+    }
     my $i = 0;
     my %user_ins  ;
     my %user_upd ;
@@ -197,17 +205,18 @@ sub users_lookup {  # usage: @userinfo = users_lookup(@user_id_list)
         my $protected          = $_->{'protected'}        // '' ;  #非公開アカウント
         my $followers_count          = $_->{'followers_count'}        // '' ;
         my $friends_count          = $_->{'following'}        // '' ;
-        if ( $protected == 1 ) { $i++; next; }
+        if ( $protected == 1 ) { $i++; next; }                               # 非公開なら捨てる
     
-        $ss          =   @{$rel_ref}[$i]->{'connections'}        // '' ;            # 関係性
+        if ($check_block == 1) {                                             # ブロック済みかのチェック
+            $ss          =   @{$rel_ref}[$i]->{'connections'}        // '' ;            # 関係性
 
-        my $dd = join(",",  @{$ss});
-        if ( $debug ==1) {
-            print "  ID :   $id \n";
-            print "when $dd\n" ;
-        }
-        if ( $dd =~ /blocking/i ) { $i++; next; }        # block済みなら読み飛ばす
-
+            my $dd = join(",",  @{$ss});
+            if ( $debug ==1) {
+                print "  ID :   $id \n";
+                print "when $dd\n" ;
+            }
+            if ( $dd =~ /blocking/i ) { $i++; next; }        # block済みなら読み飛ばす
+         }
 #        $name        =~ s/[\n\r\t]/ /g ;
 
  #       my $userinfo = "$screen_name" ;
@@ -270,7 +279,7 @@ sub wait_for_rate_limit {        #  wait_for_rate_limit( $type )
   $app_remain = $row->app_limit_remain;
   $time = $row->$l_reset || 0;
   
-  print "\$wait_remain  : $wait_remain \n";
+  print "\$wait_remain  : $wait_remain      Type:  $type\n";
   print "   \$app_remain  : $app_remain \n";
 
   while ( $app_remain <= 2 or $wait_remain <= 2 ) {   #app_remain か typeのremain が残り少ないなら待機
