@@ -20,10 +20,10 @@ R4sする際は外部ツールを使っていたが、そのツールでは、�
     （テーブル作成済み、テキストからロードするsql作成済み）
  1.2 テキストロードしたUnknownにidを付ける (usersのscreen_nameと同じならupdateするsql 作成済み)
      (完成・完了 テキストからロードしたものに対してidを取得してupdateする。id取得できなかった物は削除  get_users_Unknown.pl ）
- 1.3 blockedテーブルとuserテーブルができたら、APIより先にそっちでブロック済みかチェックして、取得したidをひたすらUnknownへ格納する（なるべくlookup_userしない）
-     まずテーブル見ないでAPI使ってチェックして、Unknownとuser_idsへ格納するだけにする。userのチェックロジックが面倒なため
-    （未実装  get_follwers_list.pl）
-
+ 1.3 まずテーブル見ないでAPI使ってチェックして、Unknownとuser_idsへ格納するだけにする。（APIで取って直接DBへ入れるだけ）
+    （完成  get_follwers_list.pl）
+ 1.4 userテーブル取得済みかチェックして、取得済みならそれでUnknownへinsertする。テーブルにないなら、idを配列にまとめておいてAPIで取得する（なるべくlookup_userしない）
+    （完成  get_follwers_listbyDB.pl）
 
 ２．ブロック済みかどうかはuser情報取得しないとならないが、API限界が少ないのでブロック済みはキャッシュしておきたい。このため、ブロック済みidを一括取得しておく
   （完了 blockedテーブル作成済み、ブロック済み取り込み済み  get_blocked.pl）
@@ -62,7 +62,7 @@ R4sする際は外部ツールを使っていたが、そのツールでは、�
 report_Spambytext.pl   
 
 バッチなどでいつも（ただし以下の二つは排他）
-report_Spam.pl      get_follwers_list.pl
+report_Spam.pl      get_follwers_listbyDB.pl
 
 アカウント削除などを同期するために不定期に実行する必要がある
 get_blocked_list.pl
