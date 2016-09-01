@@ -98,7 +98,7 @@ foreach $row ( @rowall ) {
   $user_ref = $twit->report_spam( { 'screen_name' => $l_name  } ) ;
       };
   $err = $@;
-  if ( ($err )  and ($err->code == 404) ) {                          # userなし
+  if ( ($err )  and ($err->code =~ /404/) ) {                          # userなし
        print  "                                                 No users in Twitter \n";
        $tmp = $teng->update( 'user_ids', { deleted => 1 },  { screen_name => $l_name } );
        if ( $debug == 1) {  print "Update user_ids : $tmp \n"; }
@@ -108,16 +108,16 @@ foreach $row ( @rowall ) {
   }
   while ( $err  ) { 
        
-     if ( $err->code == 403 ){
-      print "ERROR                   ". Dumper $err . "\n";
-         print "ERROR CODE: $err->code \n"; 
+     if ( $err =~ /403/ ){
+  #    print "ERROR                   ". Dumper $err . "\n";
+         print "ERROR CODE: $err \n"; 
        sleep(901);                                       # 本当は50件/hなので、15件/15分 = 60件/hで動かそうとすると403エラーが来る  この時は待つしか無い
            eval{
        $user_ref = $twit->report_spam( { 'screen_name' => $l_name  } ) ;
            };
        $err = $@;
 
-     } elsif ( $err->code == 404)  {                          # userなし
+     } elsif ( $err->code =~ /404/)  {                          # userなし
        print  "                                                 No users in Twitter \n";
        $tmp = $teng->update( 'user_ids', { deleted => 1 },  { screen_name => $l_name } );
        if ( $debug == 1) {  print "Update user_ids : $tmp \n"; }

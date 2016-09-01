@@ -105,11 +105,11 @@ sub get_followers_list {  # Usage:  get_followers_list($screen_name) ;
       };
         $err = $@;
         if ($err ) {
-          if ($err->code == 404) {                          # user‚È‚µ
+          if ($err->code =~ /404/) {                          # user‚È‚µ
             if ( $debug == 1) {  print "ERROR CODE: $err->code \n"; }
                print  "                                                 No users in Twitter $arg{'screen_name'}  \n";
             last; 
-          } elsif ( $err->code == 401) {                          # userBan
+          } elsif ( $err->code =~ /401/) {                          # userBan
             if ( $debug == 1) {  print "ERROR CODE: $err->code \n"; }
                print  "                                                 BANed users in Twitter $arg{'screen_name'}  \n";
             last; 

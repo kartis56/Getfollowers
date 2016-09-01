@@ -73,6 +73,7 @@ STDOUT->autoflush(1);
 while (<IN>) {
     print STDERR $_ ,"\n";
     get_followers_list($_);
+    sleep(5);                                     #　途中で止められるように1件ごとに待機
 }
 
 exit ;
@@ -102,11 +103,11 @@ sub get_followers_list {  # Usage:  get_followers_list($screen_name) ;
       };
         $err = $@;
         if ($err ) {
-          if ($err->code == 404) {                          # userなし
+          if ($err->code =~ /404/ ) {                          # userなし
             if ( $debug == 1) {  print "ERROR CODE: $err->code \n"; }
                print  "                                                 No users in Twitter $arg{'screen_name'}  \n";
             last; 
-          } elsif ( $err->code == 401) {                          # userBan
+          } elsif ( $err->code =~ /401/) {                          # userBan
             if ( $debug == 1) {  print "ERROR CODE: $err->code \n"; }
                print  "                                                 BANed users in Twitter $arg{'screen_name'}  \n";
             last; 
@@ -310,7 +311,7 @@ sub wait_for_rate_limit {        #  wait_for_rate_limit( $type )
   print "\$wait_remain  : $wait_remain      Type:  $type\n";
   print "   \$app_remain  : $app_remain \n";
 
-  while ( $app_remain <= 2 or $wait_remain <= 2 ) {   #app_remain か typeのremain が残り少ないなら待機
+  while ( $app_remain <= 2 or $wait_remain <= 1 ) {   #app_remain か typeのremain が残り少ないなら待機
     my $sleep_time = $time - time;
       if ($debug ==1) {
           print STDERR " -- API limit reached in wait_for_limit, waiting for $sleep_time seconds -- type is : $type \n" ; 

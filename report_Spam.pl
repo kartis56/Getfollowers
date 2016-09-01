@@ -33,7 +33,7 @@ use MyAPP::DB;
 use MyApp::DB::Schema;
 use DateTime;
 
-my $debug = 1;  # 0: release,  1:detailed debug,  2:less output debug
+my $debug = 0;  # 0: release,  1:detailed debug,  2:less output debug
 my $conf         = LoadFile( "../keys.txt" );
 my %creds        = %{$conf->{creds}};
 my $twit = Net::Twitter::Lite::WithAPIv1_1->new(%creds);
@@ -65,14 +65,19 @@ OUT2->autoflush(1);
      
 
 my $row;
+my @sql;
 
+                                                         # あらかじめwhitelist分を削除する
+
+@sql="delete from unknown where unknown.id in (select id from whitelist ); ";
+$teng->do(@sql);
 
 
 
 #取りたい対象の件数取得
 my $limit = "";                                          # 抽出件数が多すぎる場合は limit 10000 などで指定する
 if ( $debug >= 1 ) { $limit = "limit 100" }; 
-my @sql = q/ select screen_name, id from 4R4s order by count DESC / . " $limit" ." ;" ;
+@sql = q/ select screen_name, id from 4R4s order by count DESC / . " $limit" ." ;" ;
 
 my $iter2 = $teng->search_by_sql( @sql ,
                                 [], '4R4s' ) 
@@ -87,7 +92,7 @@ my $rowall = $iter2->all;
 my $diff = 2;
 if ( $debug == 1) {   print "count row : ",  scalar(@$rowall) ,"\n"; }
 
-my $count = 17;
+my $count = 20;
 while ( scalar (@$rowall) == 0 ) {              # 4R4sが空なら、何件かできるまで作成する
   $count -= $diff;
   if ( $count <= 8 ) { print "Too less counter $count  "; die;  }
@@ -121,9 +126,8 @@ foreach $row ( @$rowall ) {
   $user_ref = $twit->report_spam( { 'user_id' => $l_id  } ) ;
       };
   $err = $@;
-  print "TMPERROR    "   . Dumper $err;
   
-  if ( ($err )  and ($err->code == 404) ) {                          # userなし
+  if ( ($err )  and ($err->code =~ /404/) ) {                          # userなし
     if ( $debug == 1) {  print "ERROR CODE: $err->code \n"; }
        print  "                                                 No users in Twitter \n";
     $row->delete();
@@ -137,7 +141,7 @@ foreach $row ( @$rowall ) {
   }
   while ( $err  ) { 
        
-     if ( $err->code == 403 ){
+     if ( $err =~ /403/ ){
        if ( $debug == 1) {  print "ERROR CODE: $err->code \n"; }
        sleep(901);                                       # 本当は50件/hなので、15件/15分 = 60件/hで動かそうとすると403エラーが来る  この時は待つしか無い
            eval{
@@ -145,7 +149,7 @@ foreach $row ( @$rowall ) {
            };
        $err = $@;
 
-     } elsif  ($err->code == 404)  {                          # userなし ループ内周回時チェック
+     } elsif  ($err->code =~ /404/)  {                          # userなし ループ内周回時チェック
        if ( $debug == 1) {  print "ERROR CODE: $err->code \n"; }
           print  "                                                 No users in Twitter \n";
        $row->delete();
