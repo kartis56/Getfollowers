@@ -13,8 +13,8 @@ R4sする際は外部ツールを使っていたが、そのツールでは、�
 
 ＜Todo＞
 
-１．SPAMユーザのフォロワーを取得して、ブロック済み以外を除外したリストを作る （既存のR4Sアプリなどで報告できる）[followers2Unknown]
-   (作成済み get_follwers.pl )
+１．spamer.txtへ登録したSPAMユーザのフォロワーを取得して、ブロック済み以外を除外したリストを作る （既存のR4Sアプリなどで報告できる）[followers2Unknown]
+   (作成済み get_follwers.pl )ブロック済み除外するかはフラグでon/offできるようにした、除外しないほうがAPI限界が5倍ほど多いので圧倒的に早い
 
  1.1 Unknownテーブルを作る
     （テーブル作成済み、テキストからロードするsql作成済み）
@@ -37,10 +37,15 @@ R4sする際は外部ツールを使っていたが、そのツールでは、�
   （完了 get_users.pl）
 
 ４．フォローしている・されている人のid、screen_nameを取得してWhitelist に入れる（R4sで除外するため）
-   (完了 add_white_list.pl 実行済み ただしファイル入力）
+   (完了 add_white_list.pl  ただしフォロワーといえど自分で取捨選択する必要があると思うのでファイル入力とする。つまり自動処理とはしない）
 
-５．UnknownテーブルからBlockedにない、登録回数の多順でリスト化してR4S用テキストを作る（出力後削除）[Unknown2R4s]
+   4.1 追加可能にするために、bulk_insert からinsert_or_Updateにする
+   （未修整）
+
+５．UnknownテーブルからBlockedにない、登録回数の多順でリスト化してR4S用DBを作る。R4s後はspamer.txtへ追加 [Unknown2R4s]
   （一応完了 report_Spam.pl）4R4sがなければインサート、あればR4sしてBlockedへ追加、Unknownを削除。user自体が無いならuser_idsをdeletedへ更新、Unknown,Blockedを削除
+   最初にwhitelist登録idでUnknownを削除する処理を追加
+   （予定）R4s前にBlockedにあるかチェックして、なければ以下処理続行とする。BlockedにあるならR4s済みなので
 
  5.1 R4S用リスト(R4S.txt)を使ってR4Sをする。かつ、１のフォロワー取得リストへ追加する [R4s2follower]
    （一応完了  report_Spambytext.pl） <<R4S.txt から削除はしないので手作業になる>>
@@ -52,8 +57,8 @@ R4sする際は外部ツールを使っていたが、そのツールでは、�
   （完了 get_rate_limit.pl）
 
 
-７．Twitterのリストからuserを取得してBlockedにないユーザをUnknownに格納する（まずは１と同じ動作とし、いずれBlockedを参照するよう修正する）
-
+７．Twitterのリストからuserを取得してBlockedにないユーザをr4s.txtに追記する、Blockedにあればspamer.txtへ追記する
+  （未作成）
 
 
 
