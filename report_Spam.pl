@@ -89,10 +89,10 @@ if ( $debug == 1) {   warn Dumper  "sql :  $iter2->{sql} "; }
 
 my $rowall = $iter2->all;
 
-my $diff = 2;
+my $diff = 5;
 if ( $debug == 1) {   print "count row : ",  scalar(@$rowall) ,"\n"; }
 
-my $count = 20;
+my $count = 120;
 while ( scalar (@$rowall) == 0 ) {              # 4R4sが空なら、何件かできるまで作成する
   $count -= $diff;
   if ( $count <= 8 ) { print "Too less counter $count  "; die;  }
@@ -122,33 +122,17 @@ foreach $row ( @$rowall ) {
 
   my $err ="";
   my $user_ref;
-      eval{
-  $user_ref = $twit->report_spam( { 'user_id' => $l_id  } ) ;
-      };
-  $err = $@;
   
-  if ( ($err )  and ($err->code =~ /404/) ) {                          # userなし
-    if ( $debug == 1) {  print "ERROR CODE: $err->code \n"; }
-       print  "                                                 No users in Twitter \n";
-    $row->delete();
-    $tmp = $teng->delete( 'Blocked', { id => $l_id } );
-    if ( $debug == 1) {  print "Delete blocked : $tmp \n"; }
-    $tmp = $teng->update( 'user_ids', { deleted => 1 },  { id => $l_id } );
-    if ( $debug == 1) {  print "Update user_ids : $tmp \n"; }
-    $tmp = $teng->delete( 'Unknown', { id => $l_id } );
-    if ( $debug == 1) {  print "Delete blocked : $tmp \n"; }
-    next; 
-  }
-  while ( $err  ) { 
+  do { 
+      eval{
+    $user_ref = $twit->report_spam( { 'user_id' => $l_id  } ) ;
+      };
+    $err = $@;
        
+    if ($err ) {
      if ( $err =~ /403/ ){
        if ( $debug == 1) {  print "ERROR CODE: $err->code \n"; }
        sleep(901);                                       # 本当は50件/hなので、15件/15分 = 60件/hで動かそうとすると403エラーが来る  この時は待つしか無い
-           eval{
-       $user_ref = $twit->report_spam( { 'user_id' => $l_id  } ) ;
-           };
-       $err = $@;
-
      } elsif  ($err->code =~ /404/)  {                          # userなし ループ内周回時チェック
        if ( $debug == 1) {  print "ERROR CODE: $err->code \n"; }
           print  "                                                 No users in Twitter \n";
@@ -166,7 +150,8 @@ foreach $row ( @$rowall ) {
                "\n - Twitter error.....: ", $err->error, "\n";
        die $@ unless blessed $err && $err->isa('Net::Twitter::Lite::WithAPIv1_1::Error');   #先にwarnしないとwarnせずに死ぬ
      }
-  }
+    }
+  }while ( $err );
 
   my $blocked = $teng->find_or_create( 'Blocked', { id => $l_id, done => 1}, );
   if ($debug == 1) { warn Dumper   $row->get_columns ; }

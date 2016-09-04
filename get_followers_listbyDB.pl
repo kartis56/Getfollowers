@@ -94,30 +94,40 @@ sub get_followers_list {  # Usage:  get_followers_list($screen_name) ;
     my @ins_unk = ();
 
 
-    while ($arg{'cursor'}){ # ˆê“x‚É5000‚Ü‚Å‚µ‚©Žæ“¾‚Å‚«‚È‚¢‚Ì‚Åcursor‚ð‘‚«Š·‚¦‚È‚ª‚çŽæ“¾‚ðŒJ‚è•Ô‚·
+    while ($arg{'cursor'}) { # ˆê“x‚É5000‚Ü‚Å‚µ‚©Žæ“¾‚Å‚«‚È‚¢‚Ì‚Åcursor‚ð‘‚«Š·‚¦‚È‚ª‚çŽæ“¾‚ðŒJ‚è•Ô‚·
 
         if ($debug == 1) { print " -- getfollowers call  --\n" ; }
-        wait_for_rate_limit('followers_ids');
-      eval{
-        $followers_ref = $twit->followers_ids({%arg});
-      };
-        $err = $@;
-        if ($err ) {
-          if ($err->code =~ /404/ ) {                          # user‚È‚µ
-            if ( $debug == 1) {  print "ERROR CODE: $err->code \n"; }
-               print  "                                                 No users in Twitter $arg{'screen_name'}  \n";
-            last; 
-          } elsif ( $err->code =~ /401/) {                          # userBan
-            if ( $debug == 1) {  print "ERROR CODE: $err->code \n"; }
-               print  "                                                 BANed users in Twitter $arg{'screen_name'}  \n";
-            last; 
-          } else { 
-                    warn "\n when followers_ids - HTTP Response Code: ", $err->code, "\n",
-                    "\n - HTTP Message......: ", $err->message, "\n",
-                    "\n - Twitter error.....: ", $err->error, "\n";
-                    die $@ unless blessed $err && $err->isa('Net::Twitter::Lite::WithAPIv1_1::Error');
-          }
-        }
+        do { 
+            wait_for_rate_limit('followers_ids');
+          eval{
+            $followers_ref = $twit->followers_ids({%arg});
+          };
+            $err = $@;
+            if ($err ) {
+              if ($err =~ /404/) {                          # user‚È‚µ
+                if ( $debug == 1) {  print "ERROR CODE: $err->code \n"; }
+                   print  "                                        No users in Twitter $arg{'screen_name'} : $err  \n";
+                return; 
+              } elsif ( $err->code =~ /401/) {                          # protected or baned
+                if ( $debug == 1) {  print "ERROR CODE: $err->code \n"; }
+                   print  "                            Protected or BANed users in Twitter $arg{'screen_name'} :   $err   \n";
+                return; 
+              } elsif ( $err =~ /429|420/ ) {                          # Too Many Req
+                if ( $debug == 1) {  print "ERROR CODE: $err->code \n"; }
+                   print  "                                          TooMany Request $arg{'screen_name'} : $err \n";
+                sleep(60); 
+              } elsif ( $err =~ /500/ ) {                          # can't connect
+                if ( $debug == 1) {  print "ERROR CODE: $err->code \n"; }
+                   print  "                                          cant connect Twitter $arg{'screen_name'} : $err \n";
+                sleep(10); 
+              } else {
+                        warn "\n when followers_ids - HTTP Response Code: ", $err->code, "\n",
+                        "\n - HTTP Message......: ", $err->message, "\n",
+                        "\n - Twitter error.....: ", $err->error, "\n";
+                        die $@ unless blessed $err && $err->isa('Net::Twitter::Lite::WithAPIv1_1::Error');
+              }
+            }
+        } while ( $err  ) ;
             
         @l_ids = @{ $followers_ref->{'ids'} };
         $arg{'cursor'} = $followers_ref->{'next_cursor'} ;

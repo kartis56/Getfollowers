@@ -94,43 +94,32 @@ foreach $row ( @rowall ) {
 
   my $err ="";
   my $user_ref;
+  
+  do { 
       eval{
-  $user_ref = $twit->report_spam( { 'screen_name' => $l_name  } ) ;
+    $user_ref = $twit->report_spam( { 'screen_name' => $l_name  } ) ;
       };
-  $err = $@;
-  if ( ($err )  and ($err->code =~ /404/) ) {                          # userなし
-       print  "                                                 No users in Twitter \n";
-       $tmp = $teng->update( 'user_ids', { deleted => 1 },  { screen_name => $l_name } );
-       if ( $debug == 1) {  print "Update user_ids : $tmp \n"; }
-       $tmp = $teng->delete( 'Unknown', { screen_name => $l_name } );
-       if ( $debug == 1) {  print "Delete blocked :  $tmp \n"; }
-       next; 
-  }
-  while ( $err  ) { 
+    $err = $@;
        
-     if ( $err =~ /403/ ){
-  #    print "ERROR                   ". Dumper $err . "\n";
-         print "ERROR CODE: $err \n"; 
-       sleep(901);                                       # 本当は50件/hなので、15件/15分 = 60件/hで動かそうとすると403エラーが来る  この時は待つしか無い
-           eval{
-       $user_ref = $twit->report_spam( { 'screen_name' => $l_name  } ) ;
-           };
-       $err = $@;
-
-     } elsif ( $err->code =~ /404/)  {                          # userなし
-       print  "                                                 No users in Twitter \n";
-       $tmp = $teng->update( 'user_ids', { deleted => 1 },  { screen_name => $l_name } );
-       if ( $debug == 1) {  print "Update user_ids : $tmp \n"; }
-       $tmp = $teng->delete( 'Unknown', { screen_name => $l_name } );
-       if ( $debug == 1) {  print "Delete blocked :  $tmp \n"; }
-       next; 
-     } else { 
-          warn "\n when report_spam - HTTP Response Code: ", $err->code, "\n",
-               "\n - HTTP Message......: ", $err->message, "\n",
-               "\n - Twitter error.....: ", $err->error, "\n";
-       die $@ unless blessed $err && $err->isa('Net::Twitter::Lite::WithAPIv1_1::Error');   #先にwarnしないとwarnせずに死ぬ
-     }
-  }
+    if ($err ) {
+      if ( $err =~ /403/ ){                  # R4S Req too much  (50ids/1h)
+        print "Too Many Request ERROR CODE: $err \n"; 
+        sleep(901);                                       # 本当は50件/hなので、15件/15分 = 60件/hで動かそうとすると403エラーが来る  この時は待つしか無い
+      } elsif ( $err =~ /404/)  {                          # userなし
+        print  "                                                 No users in Twitter : $err \n";
+        $tmp = $teng->update( 'user_ids', { deleted => 1 },  { screen_name => $l_name } );
+        if ( $debug == 1) {  print "Update user_ids : $tmp \n"; }
+        $tmp = $teng->delete( 'Unknown', { screen_name => $l_name } );
+        if ( $debug == 1) {  print "Delete blocked :  $tmp \n"; }
+        next; 
+      } else { 
+                      warn "\n when followers_ids - HTTP Response Code: ", $err->code, "\n",
+                      "\n - HTTP Message......: ", $err->message, "\n",
+                      "\n - Twitter error.....: ", $err->error, "\n";
+        die $@ unless blessed $err && $err->isa('Net::Twitter::Lite::WithAPIv1_1::Error');   #先にwarnしないとwarnせずに死ぬ
+      }
+    }
+  } while ( $err  ) ;
 
   $l_id = $user_ref->{'id'};                          # R4Sの結果としてidが取れる
 
