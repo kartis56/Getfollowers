@@ -3,11 +3,11 @@ use strict;
 use warnings;
 use Teng::Schema::Declare;
 table {
-    name '4r4s';
-    pk 'screen_name';
+    name '4R4s';
+    pk 'id';
     columns (
-        {name => 'screen_name', type => 12},
         {name => 'id', type => 4},
+        {name => 'screen_name', type => 12},
         {name => 'count', type => 4},
         {name => 'lastupdt', type => 11},
     );
@@ -39,6 +39,15 @@ table {
     columns (
         {name => 'id', type => 4},
         {name => 'name', type => 12},
+    );
+};
+
+table {
+    name 'fuga';
+    pk 'path';
+    columns (
+        {name => 'path', type => 12},
+        {name => 'pageview', type => 4},
     );
 };
 

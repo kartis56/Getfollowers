@@ -214,7 +214,7 @@ sub users_lookup {  # usage: @userinfo = users_lookup(@user_id_list)
 =cut
         my $protected          = $_->{'protected'}        // '' ;  #非公開アカウント
         my $followers_count          = $_->{'followers_count'}        // '' ;
-        my $friends_count          = $_->{'following'}        // '' ;
+        my $friends_count       = $_->{'friends_count'}        // '' ;
         if ( $protected == 1 ) { $i++; next; }                               # 非公開なら捨てる
     
         if ($check_block == 1) {                                             # ブロック済みかのチェック
@@ -320,7 +320,7 @@ sub wait_for_rate_limit {        #  wait_for_rate_limit( $type )
   $teng->update( 'rate_limit', {$l_remain => $wait_remain , app_limit_remain  => $app_remain}, +{id => 1} );  #呼び出す度にDBからも減らす
   if ( $debug == 1 ) {
     print STDERR "wait_for_rate_limit after Loop: ",  POSIX::strftime( "%Y/%m/%d %H:%M:%S",localtime( $time ) ) ,
-                 "\n limit is : ", $row->users_lookup_remain ," type is : ", $type ,"\n";
+                 "\n limit is : ", $wait_remain ," type is : ", $type ,"\n";
   }
 
 

@@ -38,13 +38,11 @@ my $conf         = LoadFile( "../keys.txt" );
 my %creds        = %{$conf->{creds}};
 my $twit = Net::Twitter::Lite::WithAPIv1_1->new(%creds);
 
-open OUT2, '>>spamer.txt' ;
 open IN, '<R4S.txt' or die "Error : file can't open R4S.txt\n";
 
 
 STDOUT->autoflush(1);
 STDERR->autoflush(1);
-OUT2->autoflush(1);
 
    my $keys = YAML::XS::LoadFile( "../accessKey")  or die "Can't access login credentials";
 
@@ -70,9 +68,9 @@ my $count = 0;
 
 while (<IN>) {
     $_ =~ s/[\n\r\t]//g ;
-if( $debug == 1) {
-    print STDERR $_ ,"\n";
-}
+  if( $debug == 1) {
+      print STDERR $_ ,"\n";
+  }
 
     push @rowall, $_ ;
     $count++;
@@ -112,6 +110,10 @@ foreach $row ( @rowall ) {
         $tmp = $teng->delete( 'Unknown', { screen_name => $l_name } );
         if ( $debug == 1) {  print "Delete blocked :  $tmp \n"; }
         next; 
+      } elsif ( $err->code =~ /500|50[2-4]/ ) {                          # can't connect
+        if ( $debug == 1) {  print "ERROR CODE: $err->code \n"; }
+           print STDERR "                                          cant connect Twitter $l_name : $err \n";
+        sleep(10); 
       } else { 
                       warn "\n when followers_ids - HTTP Response Code: ", $err->code, "\n",
                       "\n - HTTP Message......: ", $err->message, "\n",
@@ -163,7 +165,7 @@ foreach $row ( @rowall ) {
 
         $l_id = $ref->{'id'};
     }
-  } else {                                 # user_ids があるならupdateする
+  } else {                                 # user_ids があるならupdateする R4Sでuserrefが取得できるのでそれで更新
     my @all = $tmp->all;
     if ( $debug == 1) {  print "user_ids : ". $l_id .  " \n"; }
         $teng->update( 'user_ids' ,
@@ -183,8 +185,10 @@ foreach $row ( @rowall ) {
   my $blocked = $teng->find_or_create( 'Blocked', { id => $l_id, done => 1}, );
   if ($debug == 1) { warn "Blocked :     "  . Dumper   $blocked->get_columns ; }
 
+  open OUT2, '>>spamer.txt' ;
+  OUT2->autoflush(1);
   print OUT2 $l_name ,"\r\n";
-  
+  close OUT2;
 }
 
 exit ;
@@ -247,7 +251,7 @@ sub wait_for_rate_limit {        #  wait_for_rate_limit( $type )
   $teng->update( 'rate_limit', {$l_remain => $wait_remain , app_limit_remain  => $app_remain}, +{id => 1} );  #呼び出す度にDBからも減らす
   if ( $debug == 1 ) {
     print STDERR "wait_for_rate_limit after Loop: ",  POSIX::strftime( "%Y/%m/%d %H:%M:%S",localtime( $time ) ) ,
-                 "\n limit is : ", $row->users_lookup_remain ," type is : ", $type ,"\n";
+                 "\n limit is : ", $wait_remain ," type is : ", $type ,"\n";
   }
 
 

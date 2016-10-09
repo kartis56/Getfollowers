@@ -23,7 +23,7 @@ R4sする際は外部ツールを使っていたが、そのツールでは、�
  1.3 まずテーブル見ないでAPI使ってチェックして、Unknownとuser_idsへ格納するだけにする。（APIで取って直接DBへ入れるだけ）
     （完成  get_follwers_list.pl）
  1.4 userテーブル取得済みかチェックして、取得済みならそれでUnknownへinsertする。テーブルにないなら、idを配列にまとめておいてAPIで取得する（なるべくlookup_userしない）
-    （完成  get_follwers_listbyDB.pl）
+    （完成  get_follwers_listbyDB.pl） ブロック済みも非公開(protected)も取得する。そうしないとuser_idsに残らないので差分となって何度も取得しては捨てることになる
 
 ２．ブロック済みかどうかはuser情報取得しないとならないが、API限界が少ないのでブロック済みはキャッシュしておきたい。このため、ブロック済みidを一括取得しておく
   （完了 blockedテーブル作成済み、ブロック済み取り込み済み  get_blocked.pl）
@@ -47,11 +47,14 @@ R4sする際は外部ツールを使っていたが、そのツールでは、�
    最初にwhitelist登録idでUnknownを削除する処理を追加
    （予定）R4s前にBlockedにあるかチェックして、なければ以下処理続行とする。BlockedにあるならR4s済みなので
 
- 5.1 R4S用リスト(R4S.txt)を使ってR4Sをする。かつ、１のフォロワー取得リストへ追加する [R4s2follower]
+ 5.1 R4S用リスト(R4S.txt)を使ってR4Sをする。かつ、１のフォロワー取得リスト（spamer.txt）へ追加する [R4s2follower]
    （一応完了  report_Spambytext.pl） <<R4S.txt から削除はしないので手作業になる>>
     Blockedへ追加、Unknownを削除。user自体が無いならuser_idsをdeletedへ更新、Unknown,Blockedを削除
- 
- 作業後はspamer.txtへ追加する
+    
+ 5.2 Unknownのトリガーで4R4sを作成するようにする。report_Spam.pl の4R4s作成部分削除。
+     4r4sはUnknownの削除数と一致しなければレコードを残す（同時にUnknown追加してることを想定）
+    （完了 report_Spam.pl）
+    
 
 ６．rate_limitを確保しておいて、上記コードでループの度に習得しないで済むようにする
   （完了 get_rate_limit.pl）

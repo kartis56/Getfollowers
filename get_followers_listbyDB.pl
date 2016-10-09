@@ -104,23 +104,31 @@ sub get_followers_list {  # Usage:  get_followers_list($screen_name) ;
           };
             $err = $@;
             if ($err ) {
+      #        print Dumper $err;
               if ($err =~ /404/) {                          # userなし
-                if ( $debug == 1) {  print "ERROR CODE: $err->code \n"; }
-                   print  "                                        No users in Twitter $arg{'screen_name'} : $err  \n";
+                if ( $debug == 1) {  print "ERROR CODE: $err \n"; }
+                   open ERR, '>>error.txt' ;
+                   print ERR "                            Protected or BANed users in Twitter $arg{'screen_name'} :   $err   \r\n";
+                   print  "                            Protected or BANed users in Twitter $arg{'screen_name'} :   $err   \n";
+                   close ERR;
                 return; 
               } elsif ( $err->code =~ /401/) {                          # protected or baned
-                if ( $debug == 1) {  print "ERROR CODE: $err->code \n"; }
-                   print  "                            Protected or BANed users in Twitter $arg{'screen_name'} :   $err   \n";
+                if ( $debug == 1) {  print "ERROR CODE: $err \n"; }
+                   open ERR, '>>error.txt' ;
+                   print ERR "                            Protected or BANed users in Twitter $arg{'screen_name'} :   $err   \r\n";
+                   print "                            Protected or BANed users in Twitter $arg{'screen_name'} :   $err   \n";
+                   close ERR;
                 return; 
               } elsif ( $err =~ /429|420/ ) {                          # Too Many Req
                 if ( $debug == 1) {  print "ERROR CODE: $err->code \n"; }
                    print  "                                          TooMany Request $arg{'screen_name'} : $err \n";
                 sleep(60); 
-              } elsif ( $err =~ /500/ ) {                          # can't connect
+              } elsif ( $err->code =~ /500|50[2-4]/ ) {                          # can't connect
                 if ( $debug == 1) {  print "ERROR CODE: $err->code \n"; }
-                   print  "                                          cant connect Twitter $arg{'screen_name'} : $err \n";
+                   print STDERR "                                          cant connect Twitter $arg{'screen_name'} : $err \n";
                 sleep(10); 
               } else {
+              print Dumper $err;
                         warn "\n when followers_ids - HTTP Response Code: ", $err->code, "\n",
                         "\n - HTTP Message......: ", $err->message, "\n",
                         "\n - Twitter error.....: ", $err->error, "\n";
@@ -210,10 +218,23 @@ sub users_lookup {  # usage: @userinfo = users_lookup(@user_id_list)
     };
     
         if (my $err = $@) { 
+              if ($err =~ /404/) {                          # userなし
+                if ( $debug == 1) {  print "ERROR CODE: $err \n"; }
+                   open ERR, '>>error.txt' ;
+                   print ERR "                            Protected or BANed users in Twitter $user_id_list :   $err   \r\n";
+                   print  "                            Protected or BANed users in Twitter $user_id_list :   $err   \n";
+                   close ERR;
+                return; 
+              } elsif ( $err->code =~ /500|50[2-4]/ ) {                          # can't connect
+                if ( $debug == 1) {  print "ERROR CODE: $err->code \n"; }
+                   print STDERR "                                          cant connect Twitter  $err \n";
+                sleep(10); 
+              } else {
                 warn "\n when lookup_ids - HTTP Response Code: ", $err->code, "\n",
                 "\n - HTTP Message......: ", $err->message, "\n",
                 "\n - Twitter error.....: ", $err->error, "\n";
                 die $@ unless blessed $err && $err->isa('Net::Twitter::Lite::WithAPIv1_1::Error');
+              }
         }
     
     if ($debug == 1) { print " -- lookup call  lookup friendships--\n" ; }
@@ -250,8 +271,8 @@ sub users_lookup {  # usage: @userinfo = users_lookup(@user_id_list)
 =cut
         my $protected           = $_->{'protected'}        // '' ;  #非公開アカウント
         my $followers_count     = $_->{'followers_count'}        // '' ;
-        my $friends_count       = $_->{'following'}        // '' ;
-        if ( $protected == 1 ) { $i++; next; }                               # 非公開なら捨てる
+        my $friends_count       = $_->{'friends_count'}        // '' ;
+   #     if ( $protected == 1 ) { $i++; next; }                               # 非公開なら捨てる
     
         if ($check_block == 1) {                                             # ブロック済みかのチェック
             $ss          =   @{$rel_ref}[$i]->{'connections'}        // '' ;            # 関係性
@@ -349,7 +370,7 @@ sub wait_for_rate_limit {        #  wait_for_rate_limit( $type )
   $teng->update( 'rate_limit', {$l_remain => $wait_remain , app_limit_remain  => $app_remain}, +{id => 1} );  #呼び出す度にDBからも減らす
   if ( $debug == 1 ) {
     print STDERR "wait_for_rate_limit after Loop: ",  POSIX::strftime( "%Y/%m/%d %H:%M:%S",localtime( $time ) ) ,
-                 "\n limit is : ", $row->users_lookup_remain ," type is : ", $type ,"\n";
+                 "\n limit is : ", $wait_remain ," type is : ", $type ,"\n";
   }
 
 

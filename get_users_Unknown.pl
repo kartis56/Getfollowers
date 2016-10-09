@@ -234,7 +234,7 @@ sub wait_for_rate_limit {        #  wait_for_rate_limit( $type )
   $teng->update( 'rate_limit', {$l_remain => $wait_remain , app_limit_remain  => $app_remain}, +{id => 1} );  #ŒÄ‚Ño‚·“x‚ÉDB‚©‚ç‚àŒ¸‚ç‚·
   if ( $debug == 1 ) {
     print STDERR "wait_for_rate_limit after Loop: ",  POSIX::strftime( "%Y/%m/%d %H:%M:%S",localtime( $time ) ) ,
-                 "\n limit is : ", $row->users_lookup_remain ," type is : ", $type ,"\n";
+                 "\n limit is : ", $wait_remain ," type is : ", $type ,"\n";
   }
 
 

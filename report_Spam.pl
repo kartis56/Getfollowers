@@ -26,7 +26,7 @@ use Scalar::Util 'blessed';
 use IO::Handle;            #オートフラッシュ
 use POSIX;
 use Date::Parse;           #str2time
-#if ($debug >= 1) {  use DBIx::QueryLog;   }    #デバッグ時はクエリーログを出す
+#use DBIx::QueryLog;       #デバッグ時はクエリーログを出す
 
 use lib './lib';
 use MyAPP::DB;
@@ -38,13 +38,10 @@ my $conf         = LoadFile( "../keys.txt" );
 my %creds        = %{$conf->{creds}};
 my $twit = Net::Twitter::Lite::WithAPIv1_1->new(%creds);
 
-open OUT2, '>>spamer.txt' ;
-#open IN, '<R4S.txt' or die "Error : file can't open R4S.txt\n";
 
 
 STDOUT->autoflush(1);
 STDERR->autoflush(1);
-OUT2->autoflush(1);
 
    my $keys = YAML::XS::LoadFile( "../accessKey")  or die "Can't access login credentials";
 
@@ -66,36 +63,39 @@ OUT2->autoflush(1);
 
 my $row;
 my @sql;
-
+my @itr;
+my @ids;
                                                          # あらかじめwhitelist分を削除する
 
-@sql="delete from unknown where unknown.id in (select id from whitelist ); ";
-$teng->do(@sql);
+@sql="select id from whitelist ; ";
+@itr = $teng->search_by_sql(@sql, undef, 'whitelist' );
+foreach $row ( @itr ) {
+  push  @ids, $row->id;
+}
 
-
+$teng->delete('4r4s', +{ id => {'IN' => \@ids } } );
 
 #取りたい対象の件数取得
-my $limit = "";                                          # 抽出件数が多すぎる場合は limit 10000 などで指定する
+my $limit = "limit 500";                                          # 抽出件数が多すぎる場合は limit 10000 などで指定する
 if ( $debug >= 1 ) { $limit = "limit 100" }; 
-@sql = q/ select screen_name, id from 4R4s order by count DESC / . " $limit" ." ;" ;
+@sql = q/ select screen_name, id, count from 4R4s order by count DESC / . " $limit" ." ;" ;
 
 my $iter2 = $teng->search_by_sql( @sql ,
                                 [], '4R4s' ) 
    or  die "Maybe Allready Getted 4R4s \n" ;
 if ( $debug == 1) {   warn Dumper  "sql :  $iter2->{sql} "; }
 
-#my $count = 0;
-#my @users = ();
 
 my $rowall = $iter2->all;
 
-my $diff = 5;
+=pod
+my $diff = 20;                                      # 4R4s 空の時のcount減衰値
 if ( $debug == 1) {   print "count row : ",  scalar(@$rowall) ,"\n"; }
 
-my $count = 120;
+my $count = 400;
 while ( scalar (@$rowall) == 0 ) {              # 4R4sが空なら、何件かできるまで作成する
   $count -= $diff;
-  if ( $count <= 8 ) { print "Too less counter $count  "; die;  }
+  if ( $count <= 20 ) { print "Too less counter $count  "; die;  }
   my @sql2 = "insert 4R4s(screen_name,id,count) select screen_name,id,count(id) as cnt from Unknown  group by id having cnt >= $count order by screen_name  ;" ;
                                                                           # " . $limit ." having cnt   # having cnt >= $count ;", )  order by cnt DESC
   $teng->do( @sql2, ) 
@@ -108,20 +108,21 @@ while ( scalar (@$rowall) == 0 ) {              # 4R4sが空なら、何件かできるまで
   $rowall = $iter2->all;
   if ( $debug == 1) {   print "count row : ",  scalar(@$rowall) ,"\n"; }
 }
+=cut                                                    # 4r4s作成を Unknownのトリガーにしたので不要
+
 
 foreach $row ( @$rowall ) {
   my $l_id = $row->id;
   my $l_name = $row->screen_name;
   my $tmp;
   
-  if ( $debug >= 1) {
-    print "Found a row: screen_name =   ", $l_name , "       id =       ", $l_id , " \n"; 
-  }
+  print "Found a row: screen_name =   ", $l_name , "       id =       ", $l_id , " \n"; 
 
   wait_for_rate_limit( 'users_r4s' );
 
   my $err ="";
   my $user_ref;
+  my $cnt = $row->count;
   
   do { 
       eval{
@@ -131,10 +132,10 @@ foreach $row ( @$rowall ) {
        
     if ($err ) {
      if ( $err =~ /403/ ){
-       if ( $debug == 1) {  print "ERROR CODE: $err->code \n"; }
+       print "ERROR CODE: $err \n"; 
        sleep(901);                                       # 本当は50件/hなので、15件/15分 = 60件/hで動かそうとすると403エラーが来る  この時は待つしか無い
-     } elsif  ($err->code =~ /404/)  {                          # userなし ループ内周回時チェック
-       if ( $debug == 1) {  print "ERROR CODE: $err->code \n"; }
+     } elsif  ($err =~ /404/)  {                          # userなし ループ内周回時チェック
+       if ( $debug == 1) {  print "ERROR CODE: $err \n"; }
           print  "                                                 No users in Twitter \n";
        $row->delete();
        $tmp = $teng->delete( 'Blocked', { id => $l_id } );
@@ -142,8 +143,12 @@ foreach $row ( @$rowall ) {
        $tmp = $teng->update( 'user_ids', { deleted => 1 },  { id => $l_id } );
        if ( $debug == 1) {  print "Update user_ids : $tmp \n"; }
        $tmp = $teng->delete( 'Unknown', { id => $l_id } );
-       if ( $debug == 1) {  print "Delete blocked : $tmp \n"; }
+       if ( $debug == 1) {  print "Delete Unknown : $tmp \n"; }
        next; 
+      } elsif ( $err->code =~ /500|50[2-4]/ ) {                          # can't connect
+        if ( $debug == 1) {  print "ERROR CODE: $err->code \n"; }
+           print STDERR "                                          cant connect Twitter $l_id : $err \n";
+        sleep(10); 
      } else { 
           warn "\n when report_spam - HTTP Response Code: ", $err->code, "\n",
                "\n - HTTP Message......: ", $err->message, "\n",
@@ -157,11 +162,18 @@ foreach $row ( @$rowall ) {
   if ($debug == 1) { warn Dumper   $row->get_columns ; }
 
   $tmp = $teng->delete( 'Unknown', { id => $l_id } );
-  if ( $debug == 1) {  print "Delete blocked : $tmp \n"; }
+  if ( $debug == 1) {  print "Delete Unknown : $tmp \n"; }
 
-  $tmp = $teng->delete( '4r4s', { id => $l_id } );
+  if ( $cnt == $tmp) {
+    $tmp = $teng->delete( '4R4s', { id => $l_id } );
+  } else {                                                #  処理中にUnknownが追加されているなら
+    $cnt = $tmp - $cnt;
+    $tmp = $teng->update( '4R4s', { count =>  $cnt }, { id => $l_id }  );
+  }
+  open OUT2, '>>spamer.txt' ;
+  OUT2->autoflush(1);
   print OUT2 $l_name ,"\r\n";
-  
+  close OUT2;
 }
 
 exit ;
@@ -226,7 +238,7 @@ sub wait_for_rate_limit {        #  wait_for_rate_limit( $type )
   $teng->update( 'rate_limit', {$l_remain => $wait_remain , app_limit_remain  => $app_remain}, +{id => 1} );  #呼び出す度にDBからも減らす
   if ( $debug == 1 ) {
     print STDERR "wait_for_rate_limit after Loop: ",  POSIX::strftime( "%Y/%m/%d %H:%M:%S",localtime( $time ) ) ,
-                 "\n limit is : ", $row->users_lookup_remain ," type is : ", $type ,"\n";
+                 "\n limit is : ", $wait_remain ," type is : ", $type ,"\n";
   }
 
 

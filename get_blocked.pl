@@ -26,6 +26,13 @@ use YAML::XS        'LoadFile';
 use Scalar::Util 'blessed';
 use IO::Handle;            #オートフラッシュ
 
+use lib './lib';
+use MyAPP::DB;
+use MyApp::DB::Schema;
+use DateTime;
+use POSIX;
+use Date::Parse;           #str2time
+
 open TMP, '>>blocking.txt' ;
 
 
@@ -33,6 +40,23 @@ my $debug = 1;
 my $conf         = LoadFile( "../keys.txt" );
 my %creds        = %{$conf->{creds}};
 my $twit = Net::Twitter::Lite::WithAPIv1_1->new(%creds);
+
+   my $keys = YAML::XS::LoadFile( "../accessKey")  or die "Can't access login credentials";
+
+   my $database = $keys->{db};
+   my $host = $keys->{host};
+   my $userid = $keys->{userid};
+   my $passwd = $keys->{passwd};
+
+
+   chomp ($database, $host, $userid, $passwd);
+   
+   my $connectionInfo="dbi:mysql:$database;$host:3306";
+   
+   # make connection to database
+   my $teng = MyApp::DB->new(
+     connect_info => [$connectionInfo, $userid, $passwd, +{ RaiseError => 1, mysql_use_result => 1 }, ],
+     schema_class => 'MyApp::DB::Schema', ) or die "connect Error";
 
 STDOUT->autoflush(1);
 
@@ -64,7 +88,7 @@ sub get_blocks_list {  # Usage: get_blocks_list ;
     while ($arg{'cursor'}){ # 一度に5000までしか取得できないのでcursorを書き換えながら取得を繰り返す
 
         if ($debug == 1) { print " -- get_blocks_ids call  --\n" ; }
-        wait_for_rate_limit('blocks');
+        wait_for_rate_limit('blocks_ids');
 
         $blocks_ref = $twit->blocking_ids( {%arg} );
         $ids_ref = $blocks_ref->{'ids'} ;
@@ -92,128 +116,65 @@ sub get_blocks_list {  # Usage: get_blocks_list ;
 
     return ;
 } 
-=pod
-# ====================
-sub print_blocks_list {  # usage:  @userinfo = print_blocks_list(@user_list)
-    @_ or die "ERROR: print_blocks_list() : user_id_list is empty\n" ;
-#    scalar (@_) <= 100 or die "ERROR: print_blocks_list() : user_id_list > 100\n" ;
 
-    if ($debug == 1) { print " -- print_blocks_list call  --\n" ; }
-#    my $user_id_list
-    my $user_ref =  join ',', @_ ;
-    my @user_info ;
+############################## ver 2016/08/15 use $l_limit = $type , "_limit"  and  print lastupdt
+############################ APP不足に対応済み
+sub wait_for_rate_limit {        #  wait_for_rate_limit( $type ) 
+  my $type = shift;
+  my $row = $teng->single( 'rate_limit', {id => 1} );
 
-#print $user_ref;
-    foreach my $ref ( \$user_ref ) {
+  my $l_limit = "$type" . "_limit";
+  my $l_remain = "$type" . "_remain";
+  my $l_reset = "$type" . "_reset";
+  my $wait_remain = $row->$l_remain;
+  my $app_remain = $row->app_limit_remain;
+  my $time = $row->$l_reset || 0;
 
-        my $id              = $ref->{'ids'}              // '' ;
+  my $old = str2time($row->lastupdt,'JST');
+  print "rate_limit foward update time:  " . $row->lastupdt ."\n";
+  
+  if (( ($old +900) <= time ) or ( $time <= time ) ) {        # 前回取得日時から15分経っている またはリセット時間が今より前ならrate_limitを再取得する
+      do `./get_rate_limit.pl`;                    #バックダッシュ (Shift+@)
+      $row = $teng->single( 'rate_limit', {id => 1} );
+  }
+  
+  $wait_remain = $row->$l_remain;
+  $app_remain = $row->app_limit_remain;
+  $time = $row->$l_reset || 0;
+  
+  print "\$wait_remain  : $wait_remain      Type:  $type\n";
+  print "   \$app_remain  : $app_remain \n";
 
-        my $userinfo =  qw/$id/;  
-        my $screen_name       = $ref->{'screen_name'}       // '' ;
-        my $protected          = $ref->{'protected'}        // '' ;  #非公開アカウント
-        my $followers_count          = $ref->{'followers_count'}        // '' ;
-        my $friends_count          = $ref->{'friends_count'}        // '' ;
-        my $following          = $ref->{'following'}        // '' ;  #フォロー済みアカウント
-        my $blocking          = $ref->{'blocking'}        // '' ;  #ブロック済みアカウント
-        if ( $following =~ /following/i ) {  next; }        # フォロー済みなら読み飛ばす
-
-
-#        Encode::is_utf8($userinfo) and $userinfo = Encode::encode('utf-8',$userinfo) ;
-
-        push @user_info, $user_ref ;
+  while ( $app_remain <= 2 or $wait_remain <= 2 ) {   #app_remain か typeのremain が残り少ないなら待機
+    my $sleep_time = $time - time;
+      if ($debug ==1) {
+          print STDERR " -- API limit reached in wait_for_limit, waiting for $sleep_time seconds -- type is : $type \n" ; 
+          print "----------------------- At until Loop\n";
+      }
+    print "wait rate_limit until -------" , POSIX::strftime( "%Y/%m/%d %H:%M:%S",localtime( $time )) , "\n";
+      sleep ( $sleep_time + 1 );
+    do `./get_rate_limit.pl`;                    #バックダッシュ (Shift+@)
+    $row = $teng->single( 'rate_limit',{id => 1} );
+    $wait_remain = $row->$l_remain;
+    $app_remain = $row->app_limit_remain;
+    $time = $row->$l_reset;
+    $sleep_time = $time - time;
     
-    #}
-    if ( $@ ) { print "Error $@ \n"; }
-    
-    return @user_info ;
-}
-=cut
-
-#https://github.com/freebsdgirl/ggautoblocker/blob/master/ggautoblocker.pl  よりコピー改変
-# ====================
-sub get_rate_limit {
-    my $type = shift;
-    my $m ;
-    
-    eval{
-        $m = $twit->rate_limit_status;
-        print "App remaining ,". $m->{'resources'}->{'application'}->{'/application/rate_limit_status'}->{'remaining'} ."  \n";
-    };
-
-    if ( my $err = $@ ) {
-
-        if ( $m->{'resources'}->{'application'}->{'/application/rate_limit_status'}->{'remaining'} == 0 ) {
-            if ($debug ==1) {
-                print "Zero remaining ". $m->{'resources'}->{'application'}->{'/application/rate_limit_status'}->{'remaining'} ."\n"; 
-                print " -- API limit reached, waiting for ". ( $m->{'resources'}->{'application'}->{'/application/rate_limit_status'}->{'reset'} - time ) . " seconds --\n" ;
-            }
-            
-            sleep ( $m->{'resources'}->{'application'}->{'/application/rate_limit_status'}->{'reset'} - time + 1 );
-        }
-        warn "when get_rate_limit  - HTTP Response Code: ", $err->code, "\n",
-        "\n - HTTP Message......: ", $err->message, "\n",
-        "\n - Twitter error.....: ", $err->error, "\n";
-    }  # end $err 
-        
-
-    if ( $type =~ /blocks/ ) {
-        print "blocks_ids remaining ,". $m->{'resources'}->{'blocks'}->{'/blocks/ids'}->{'remaining'} ."  \n";
-        return { 
-            type => $type,
-            remaining => $m->{'resources'}->{'blocks'}->{'/blocks/ids'}->{'remaining'}, 
-            reset => $m->{'resources'}->{'blocks'}->{'/blocks/ids'}->{'reset'} 
-        };
-    } else {
-=pod
-    #if ( $type =~ /lookup_users/ ) {
-        my $user_look_rem;
-        my $friend_look_rem;
-        
-        $user_look_rem = $m->{'resources'}->{'users'}->{'/users/lookup'}->{'remaining'};
-        $friend_look_rem =  $m->{'resources'}->{'friendships'}->{'/friendships/lookup'}->{'remaining'};
-        
-        print "lookup_users remaining ,". $user_look_rem ."  \n";
-        print "follwers_ids remaining ,". $friend_look_rem ."  \n";
-
-        if( $user_look_rem  >= $friend_look_rem  ) {
-            return {
-                type => $type, 
-                remaining => $friend_look_rem,
-                reset => $m->{'resources'}->{'friendships'}->{'/friendships/lookup'}->{'reset'}
-            };
-        } else {
-            return {
-                type => $type, 
-                remaining => $user_look_rem,
-                reset => $m->{'resources'}->{'users'}->{'/users/lookup'}->{'reset'}
-            };
-        }
-=cut
+    if ( $sleep_time <= 0 ){        # resetが過去のことがある
+       $time = time + 60;
     }
-
-}
-
-
-# ====================
-sub wait_for_rate_limit {
-    my $type = shift;
-
-    my $limit = get_rate_limit($type);
-        if ($debug ==1) { print "wait_for_rate_limit enter ". $limit->{'remaining'} ."\n"; }
-        
-    my $time = $limit->{'reset'} ;
-    
-    until ( $limit->{'remaining'} >= 2 ) {
-        if ($debug ==1) {
-            print STDERR " -- API limit reached in wait_for_limit, waiting for ". ( $time - time ) . " seconds -- type is : ". $type. "\n" ; 
-            print "----------------------- At until Loop\n";
-        }
-        sleep ( $time - time + 1 );
-        $limit = get_rate_limit($type);
-        $time = $limit->{'reset'} ;
-        if ( ($time - time) <= 0 ){        # resetが古いことがある
-            $time = time + 60; }
-        if ($debug ==1) { print STDERR "wait_for_rate_limit next Loop: ". $time . "  limit is : ". $limit->{'remaining'} ." type is : ". $type. "\n"; }
+    if ( $debug == 1) {
+      print STDERR "wait_for_rate_limit next Loop: ". POSIX::strftime( "%Y/%m/%d %H:%M:%S",localtime( $time ))
+                  ."\n limit is : ". $wait_remain ." type is : ". $type . "\n"; 
     }
+  }
+  $wait_remain--;   # 使う前に減らしておく
+  $app_remain--;
+  $teng->update( 'rate_limit', {$l_remain => $wait_remain , app_limit_remain  => $app_remain}, +{id => 1} );  #呼び出す度にDBからも減らす
+  if ( $debug == 1 ) {
+    print STDERR "wait_for_rate_limit after Loop: ",  POSIX::strftime( "%Y/%m/%d %H:%M:%S",localtime( $time ) ) ,
+                 "\n limit is : ", $wait_remain ," type is : ", $type ,"\n";
+  }
+
 
 }

@@ -23,15 +23,15 @@ create table Whitelist (
     index white_idx(screen_name) ) ;
 
 create table 4R4s (
-    screen_name varchar(16) primary key, id bigint(20) default 0, count int default 0, 
+    id bigint(20) primary key, screen_name varchar(16) , count int default 0, 
     lastupdt DATETIME default CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    index idx_r4s(screen_name) ) ;
+    index idx_r4s(screen_name), INDEX idx_r4cnt(count) ) ;
 
 
 create table Unknown (
     id bigint(20) default 0, screen_name varchar(16) default '0',
     lastupdt DATETIME default CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    index idx_unk(screen_name), idx_unkid(id) ) ;
+    index idx_unk(screen_name), index idx_unkid(id) ) ;
 
 
 create table rate_limit ( 
@@ -98,3 +98,10 @@ create table rate_limit (
 	friends_ids_reset DATETIME,
     lastupdt DATETIME default CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP) ;
 
+drop trigger if exists  Unk_insert;
+
+create trigger Unk_insert AFTER INSERT on Unknown for each row 
+    insert into 4r4s(screen_name, id, count) values(new.screen_name, new.id, 1 ) on duplicate key 
+      update   count = count +1 ;
+   
+    
